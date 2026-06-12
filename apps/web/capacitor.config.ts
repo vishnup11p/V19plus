@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   appName: 'V19+',
   webDir: 'public',
   server: {
-    url: process.env.CAPACITOR_SERVER_URL || 'https://YOUR_WEB_APP.vercel.app',
+    url: process.env.CAPACITOR_SERVER_URL || 'https://v19plus-admin.vercel.app',
     cleartext: false,
     androidScheme: 'https',
   },
