@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  googleId      String?        @unique
+  passwordHash  String?
+  name          String
+  avatarUrl     String?
+  isVerified    Boolean        @default(false)
+  role          String         @default("USER")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // Relations
+  subscription  Subscription?
+  watchHistory  WatchHistory[]
+  watchlist     Watchlist[]
+  profiles      Profile[]
+  refreshTokens RefreshToken[]
+  devices       Device[]
+  notifications Notification[]
+  reviews       Review[]
+  payments      Payment[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Profile {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  avatarColor     String           @default("#FF6B1A")
+  isKids          Boolean          @default(false)
+  pin             String?
+  createdAt       DateTime         @default(now())
+  profileSessions ProfileSession[]
+
+  @@index([userId])
+  @@map("profiles")
+}
+
+model ProfileSession {
+  id        String   @id @default(uuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([profileId])
+  @@map("profile_sessions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Content {
+  id           String         @id @default(uuid())
+  title        String
+  slug         String         @unique
+  description  String
+  type         String         // "MOVIE" | "SERIES" | "DOCUMENTARY"
+  releaseYear  Int
+  rating       String         // "G", "PG-13", "R", "TV-MA"
+  imdbScore    Float?
+  duration     Int?           // Only for Movie/Documentary
+  thumbnailUrl String
+  backdropUrl  String
+  videoUrl     String?        // Master HLS link (.m3u8) or source URL
+  trailerUrl   String?
+  isOriginal   Boolean        @default(false)
+  isFeatured   Boolean        @default(false)
+  isPublished  Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  
+  // Relations
+  genres       ContentGenre[]
+  tags         String[]       // Native PostgreSQL array
+  seasons      Season[]
+  watchHistory WatchHistory[]
+  watchlist    Watchlist[]
+  cast         CastMember[]
+  crew         CrewMember[]
+  subtitles    Subtitle[]
+  audioTracks  AudioTrack[]
+  reviews      Review[]
+
+  @@index([slug])
+  @@index([type])
+  @@index([releaseYear])
+  @@map("contents")
+}
+
+model Genre {
+  id       String         @id @default(uuid())
+  name     String         @unique
+  slug     String         @unique
+  contents ContentGenre[]
+
+  @@map("genres")
+}
+
+// Many-to-many junction table for Content and Genre
+model ContentGenre {
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  genreId   String
+  genre     Genre   @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([contentId, genreId])
+  @@index([contentId])
+  @@index([genreId])
+  @@map("content_genres")
+}
+
+model Season {
+  id        String    @id @default(uuid())
+  contentId String
+  content   Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  number    Int
+  title     String?
+  episodes  Episode[]
+
+  @@index([contentId])
+  @@map("seasons")
+}
+
+model Episode {
+  id           String         @id @default(uuid())
+  seasonId     String
+  season       Season         @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  number       Int
+  title        String
+  description  String?
+  duration     Int
+  thumbnailUrl String?
+  videoUrl     String         // HLS file path
+  createdAt    DateTime       @default(now())
+  watchHistory WatchHistory[]
+  subtitles    Subtitle[]
+  audioTracks  AudioTrack[]
+
+  @@index([seasonId])
+  @@map("episodes")
+}
+
+model CastMember {
+  id        String  @id @default(uuid())
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  name      String
+  role      String
+  photoUrl  String?
+
+  @@index([contentId])
+  @@map("cast_members")
+}
+
+model CrewMember {
+  id        String  @id @default(uuid())
+  contentId String
+  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  name      String
+  role      String  // "DIRECTOR" | "WRITER" | "PRODUCER" | etc.
+  photoUrl  String?
+
+  @@index([contentId])
+  @@map("crew_members")
+}
+
+model Subtitle {
+  id        String   @id @default(uuid())
+  contentId String?
+  content   Content? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  episodeId String?
+  episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  language  String   // "en", "es", "fr", etc.
+  label     String   // "English", "Spanish", etc.
+  url       String   // URL to WebVTT file
+  createdAt DateTime @default(now())
+
+  @@index([contentId])
+  @@index([episodeId])
+  @@map("subtitles")
+}
+
+model AudioTrack {
+  id        String   @id @default(uuid())
+  contentId String?
+  content   Content? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  episodeId String?
+  episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  language  String   // "en", "es", etc.
+  label     String   // "English", "Spanish Stereo", etc.
+  url       String   // URL to audio segment/manifest
+  createdAt DateTime @default(now())
+
+  @@index([contentId])
+  @@index([episodeId])
+  @@map("audio_tracks")
+}
+
+model WatchHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  episodeId String?
+  episode   Episode? @relation(fields: [episodeId], references: [id], onDelete: SetNull)
+  entryKey  String   // "contentId" or "contentId:episodeId"
+  progress  Float    @default(0) // percentage 0 to 100
+  completed Boolean  @default(false)
+  watchedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, entryKey])
+  @@index([userId])
+  @@map("watch_history")
+}
+
+model Watchlist {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  addedAt   DateTime @default(now())
+
+  @@unique([userId, contentId])
+  @@index([userId])
+  @@map("watchlists")
+}
+
+model SiteSettings {
+  id           String   @id @default("default")
+  siteName     String   @default("V19+")
+  tagline      String   @default("Stream Unlimited")
+  logoUrl      String?
+  faviconUrl   String?
+  primaryColor String   @default("#FF6B1A")
+  footerText   String   @default("© 2026 V19+. All rights reserved.")
+  updatedAt    DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  icon      String   @default("🎬")
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("categories")
+}
+
+model Subscription {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan                 String   // "BASIC" | "STANDARD" | "PREMIUM"
+  status               String   @default("ACTIVE") // "ACTIVE" | "CANCELLED" | "EXPIRED"
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Int
+  currency      String   @default("INR")
+  status        String   // "SUCCESS" | "FAILED" | "PENDING"
+  provider      String   // "STRIPE" | "RAZORPAY"
+  transactionId String   @unique
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@map("payments")
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentId String
+  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  rating    Int      // 1 to 5
+  comment   String
+  createdAt DateTime @default(now())
+
+  @@index([contentId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+model Device {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceName String
+  deviceType String   // "MOBILE" | "WEB" | "SMART_TV"
+  ipAddress  String
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("devices")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("notifications")
+}

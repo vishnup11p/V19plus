@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+
+# Environment files (contain secrets!)
+.env
+.env.local
+.env.production
+.env.development
+frontend/.env
+backend/.env
+apps/backend/.env
+apps/web/.env
+
+# Database
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+backend/.pgdata/
+
+# Logs
+*.log
+logfile
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+coverage/
+
+# Misc
+*.apk

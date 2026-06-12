@@ -1,0 +1,25 @@
+{
+  "name": "v19plus-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web,admin \"npm run dev --workspace=apps/backend\" \"npm run dev --workspace=apps/web\" \"npm run dev --workspace=apps/admin\"",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "dev:setup": "npm run dev:setup --workspace=apps/backend",
+    "dev:docker": "docker-compose up --build",
+    "down": "docker-compose down",
+    "build": "npm run build --workspaces --if-present",
+    "mobile:init": "npm run mobile:init --workspace=apps/web",
+    "mobile:sync": "npm run mobile:sync --workspace=apps/web",
+    "mobile:android": "npm run cap:android --workspace=apps/web"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

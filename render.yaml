@@ -1,0 +1,70 @@
+# Render Blueprint — V19+ Backend API
+# Connect this repo in Render Dashboard → New → Blueprint
+# Set sync:false env vars manually after first deploy.
+
+services:
+  - type: web
+    name: v19plus-api
+    runtime: node
+    region: singapore
+    plan: free
+    healthCheckPath: /api/health
+    buildCommand: >-
+      npm install &&
+      npm run build --workspace=apps/backend &&
+      cd apps/backend &&
+      npx prisma generate &&
+      (npx prisma migrate deploy || npx prisma db push)
+    startCommand: npm run start:prod --workspace=apps/backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      # Supabase PostgreSQL (Settings → Database → Connection string)
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: ADMIN_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: REDIS_URL
+        value: memory://
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: COOKIE_SAME_SITE
+        value: lax
