@@ -115,8 +115,9 @@ https://YOUR-API.onrender.com/api/health
 
 1. [vercel.com](https://vercel.com) → **Add New Project** → import GitHub repo
 2. Settings:
-   - **Root Directory:** leave as repo root (`.`)
-   - **Framework:** Next.js (auto-detected via `vercel.json`)
+   - **Root Directory:** `apps/web`
+   - **Framework:** Next.js (auto-detected)
+   - **Build & Development Settings:** Leave default or let `apps/web/vercel.json` apply settings automatically (`npm run build`, output directory `.next`).
 3. **Environment Variables:**
 
 ```env
@@ -135,11 +136,10 @@ NEXT_PUBLIC_SOCKET_URL=https://YOUR-API.onrender.com
 
 Create a **second Vercel project** from the same repo.
 
-1. **Root Directory:** `.` (repo root)
-2. Override build settings (or use `apps/admin/vercel.json`):
-   - Build: `npm run build --workspace=apps/admin`
-   - Output: `apps/admin/.next`
-3. **Environment Variables:**
+1. **Root Directory:** `apps/admin`
+2. **Framework:** Next.js (auto-detected)
+3. **Build & Development Settings:** Leave default or let `apps/admin/vercel.json` apply settings automatically (`npm run build`, output directory `.next`).
+4. **Environment Variables:**
 
 ```env
 BACKEND_URL=https://YOUR-API.onrender.com
