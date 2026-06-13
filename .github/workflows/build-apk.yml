@@ -39,6 +39,8 @@ jobs:
       run: npm run build --workspace=apps/web
 
     - name: Sync Capacitor Android Config
+      env:
+        CAPACITOR_SERVER_URL: https://v19plus-web.vercel.app
       run: |
         cd apps/web
         npx cap sync android
