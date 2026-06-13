@@ -142,7 +142,7 @@ function LoginContent() {
         {/* Logo */}
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-2 group">
-            <img src="/logo.png" alt="V19+" className="h-10 object-contain" />
+            <img src="/logo.png" alt="V19+" className="h-14 md:h-16 object-contain transition-transform hover:scale-105 duration-300" />
           </Link>
         </div>
 
@@ -240,7 +240,7 @@ function LoginContent() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <img src="/logo.png" alt="V19+" className="h-14 object-contain" />
+          <img src="/logo.png" alt="V19+" className="h-20 object-contain" />
         </motion.div>
 
         {/* Tagline */}
