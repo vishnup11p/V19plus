@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Content } from '../../api/content';
 import { ProgressBar } from '../ui/ProgressBar';
-import { watchlistApi } from '../../api/watchlist';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
+import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from '../../hooks/useWatchlist';
 import toast from 'react-hot-toast';
 
 interface ContentCardProps {
@@ -19,11 +19,16 @@ interface ContentCardProps {
 export function ContentCard({ content, progress, rank, size = 'md' }: ContentCardProps) {
   const [hovered, setHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const [inList, setInList] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openDetail = useUiStore((s) => s.openDetail);
   const router = useRouter();
   const hoverTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const { data: watchlist } = useWatchlist();
+  const addToWatchlist = useAddToWatchlist();
+  const removeFromWatchlist = useRemoveFromWatchlist();
+
+  const inList = !!watchlist?.some((item: any) => item.content.id === content.id);
 
   const widths = { sm: 'w-28 md:w-36', md: 'w-36 md:w-44', lg: 'w-44 md:w-56' };
 
@@ -42,16 +47,14 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
     if (!isAuthenticated) { toast.error('Sign in to add to your list'); return; }
     try {
       if (inList) {
-        await watchlistApi.remove(content.id);
-        setInList(false);
+        await removeFromWatchlist.mutateAsync(content.id);
         toast.success('Removed from My List');
       } else {
-        await watchlistApi.add(content.id);
-        setInList(true);
+        await addToWatchlist.mutateAsync(content.id);
         toast.success('Added to My List');
       }
     } catch {
-      toast.error(inList ? 'Already in your list' : 'Could not update list');
+      toast.error('Could not update list');
     }
   };
 

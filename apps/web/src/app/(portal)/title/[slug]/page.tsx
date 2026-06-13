@@ -7,8 +7,8 @@ import { motion } from 'framer-motion';
 import { useContent } from '../../../../hooks/useContent';
 import { Skeleton } from '../../../../components/ui/Skeleton';
 import { ProgressBar } from '../../../../components/ui/ProgressBar';
-import { watchlistApi } from '../../../../api/watchlist';
 import { useAuthStore } from '../../../../store/authStore';
+import { useWatchlist, useAddToWatchlist, useRemoveFromWatchlist } from '../../../../hooks/useWatchlist';
 import toast from 'react-hot-toast';
 
 export default function TitleDetailPage() {
@@ -18,22 +18,26 @@ export default function TitleDetailPage() {
   const { data: content, isLoading } = useContent(slug || '');
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const [inList, setInList] = useState(false);
   const [activeSeason, setActiveSeason] = useState(0);
+
+  const { data: watchlist } = useWatchlist();
+  const addToWatchlist = useAddToWatchlist();
+  const removeFromWatchlist = useRemoveFromWatchlist();
+
+  const inList = !!(content && watchlist?.some((item: any) => item.content.id === content.id));
 
   const handleWatchlist = async () => {
     if (!isAuthenticated) {
       toast.error('Sign in to add to your list');
       return;
     }
+    if (!content) return;
     try {
       if (inList) {
-        await watchlistApi.remove(content!.id);
-        setInList(false);
+        await removeFromWatchlist.mutateAsync(content.id);
         toast.success('Removed from My List');
       } else {
-        await watchlistApi.add(content!.id);
-        setInList(true);
+        await addToWatchlist.mutateAsync(content.id);
         toast.success('Added to My List');
       }
     } catch {
