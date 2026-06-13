@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import ReactPlayer from 'react-player';
+import { useRouter } from 'next/navigation';
 import { usePlayerStore } from '../../store/playerStore';
 import { PlayerControls } from './PlayerControls';
 import { SubtitleOverlay } from './SubtitleOverlay';
@@ -15,6 +16,7 @@ interface VideoPlayerProps {
 }
 
 export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSeconds = 0 }: VideoPlayerProps) {
+  const router = useRouter();
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -133,6 +135,34 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       onMouseMove={resetHideTimer}
       onClick={() => (isPlaying ? pause() : resume())}
     >
+      {/* Top Bar with Back Button */}
+      {showControls && (
+        <div
+          className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center gap-4 bg-gradient-to-b from-black/80 to-transparent animate-fade-in"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => router.back()}
+            className="text-white hover:text-n-red transition-colors active:scale-90"
+            aria-label="Go Back"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          <div className="flex flex-col text-left">
+            <span className="text-white font-bold text-lg md:text-xl leading-tight text-shadow">
+              {content.title}
+            </span>
+            {episode && (
+              <span className="text-white/60 text-xs md:text-sm text-shadow-sm">
+                S{content.seasons?.find((s) => s.episodes.some((e) => e.id === episodeId))?.number || 1}:E{episode.number} — {episode.title}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       <ReactPlayer
         ref={playerRef}
         url={videoUrl}
