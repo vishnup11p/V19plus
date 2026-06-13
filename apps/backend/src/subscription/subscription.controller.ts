@@ -1,8 +1,10 @@
 import { Controller, Get, Post, Body, Req, Res, UseGuards, RawBodyRequest } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { SubscriptionService, PlanId } from './subscription.service';
+import { SubscriptionService } from './subscription.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { CheckoutDto } from './dto/checkout.dto';
+import { VerifyRazorpayDto } from './dto/verify-razorpay.dto';
 
 @Controller('subscription')
 export class SubscriptionController {
@@ -23,9 +25,9 @@ export class SubscriptionController {
   @UseGuards(AuthGuard)
   checkout(
     @CurrentUser('userId') userId: string,
-    @Body('plan') plan: PlanId
+    @Body() body: CheckoutDto
   ) {
-    return this.subscriptionService.createCheckoutSession(userId, plan);
+    return this.subscriptionService.createCheckoutSession(userId, body.plan);
   }
 
   @Post('cancel')
@@ -49,16 +51,16 @@ export class SubscriptionController {
   @UseGuards(AuthGuard)
   createRazorpayOrder(
     @CurrentUser('userId') userId: string,
-    @Body('plan') plan: PlanId
+    @Body() body: CheckoutDto
   ) {
-    return this.subscriptionService.createRazorpayOrder(userId, plan);
+    return this.subscriptionService.createRazorpayOrder(userId, body.plan);
   }
 
   @Post('razorpay/verify')
   @UseGuards(AuthGuard)
   verifyRazorpayPayment(
     @CurrentUser('userId') userId: string,
-    @Body() body: { orderId: string; paymentId: string; signature: string; plan: PlanId }
+    @Body() body: VerifyRazorpayDto
   ) {
     return this.subscriptionService.verifyRazorpayPayment(userId, body);
   }

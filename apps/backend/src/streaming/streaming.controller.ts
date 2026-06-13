@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { StreamingService, UpsertHistoryDto } from './streaming.service';
+import { StreamingService } from './streaming.service';
+import { UpsertHistoryDto } from './dto/upsert-history.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 

@@ -1,16 +1,17 @@
 import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
-import { ContentService } from './content.service';
+import { StreamingService } from '../streaming/streaming.service';
+import { UpsertHistoryDto } from '../streaming/dto/upsert-history.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
 @Controller('history')
 @UseGuards(AuthGuard)
 export class HistoryController {
-  constructor(private readonly contentService: ContentService) {}
+  constructor(private readonly streamingService: StreamingService) {}
 
   @Get()
   getHistory(@CurrentUser('userId') userId: string) {
-    return this.contentService.getHistory(userId);
+    return this.streamingService.getHistory(userId);
   }
 
   @Get(':contentId')
@@ -19,15 +20,15 @@ export class HistoryController {
     @Param('contentId') contentId: string,
     @Query('episodeId') episodeId?: string
   ) {
-    return this.contentService.getProgress(userId, contentId, episodeId);
+    return this.streamingService.getProgress(userId, contentId, episodeId);
   }
 
   @Post()
   upsert(
     @CurrentUser('userId') userId: string,
-    @Body() body: { contentId: string; episodeId?: string; progress: number; completed?: boolean }
+    @Body() body: UpsertHistoryDto
   ) {
-    return this.contentService.upsertHistory(userId, body);
+    return this.streamingService.upsert(userId, body);
   }
 
   @Delete(':contentId')
@@ -35,6 +36,6 @@ export class HistoryController {
     @CurrentUser('userId') userId: string,
     @Param('contentId') contentId: string
   ) {
-    return this.contentService.removeFromHistory(userId, contentId);
+    return this.streamingService.removeFromHistory(userId, contentId);
   }
 }

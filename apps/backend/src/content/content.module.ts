@@ -5,9 +5,13 @@ import { WatchlistController } from './watchlist.controller';
 import { HistoryController } from './history.controller';
 import { CategoriesController } from './categories.controller';
 import { AuthModule } from '../auth/auth.module';
+import { StreamingModule } from '../streaming/streaming.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [
+    AuthModule,
+    StreamingModule,
+  ],
   controllers: [
     ContentController,
     WatchlistController,

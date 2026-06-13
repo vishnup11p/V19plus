@@ -14,6 +14,8 @@ import { AdminService } from './admin.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { CreateContentDto } from '../content/dto/create-content.dto';
+import { UpdateContentDto } from '../content/dto/update-content.dto';
 
 @Controller('admin')
 @UseGuards(AuthGuard, RolesGuard)
@@ -77,12 +79,12 @@ export class AdminController {
 
   @Post('content')
   @HttpCode(HttpStatus.CREATED)
-  createContent(@Body() body: Record<string, unknown>) {
+  createContent(@Body() body: CreateContentDto) {
     return this.adminService.createContent(body);
   }
 
   @Put('content/:id')
-  updateContent(@Param('id') id: string, @Body() body: Record<string, unknown>) {
+  updateContent(@Param('id') id: string, @Body() body: UpdateContentDto) {
     return this.adminService.updateContent(id, body);
   }
 

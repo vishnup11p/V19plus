@@ -5,7 +5,10 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import * as cookieParser from 'cookie-parser';
+import * as express from 'express';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './global-exception.filter';
+import { LoggingInterceptor } from './logging.interceptor';
 
 for (const envPath of [
   join(process.cwd(), '.env'),
@@ -84,6 +87,9 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
+  // Serve the local uploads folder statically for video/manifest direct playback
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(new ValidationPipe({
@@ -91,6 +97,9 @@ async function bootstrap() {
     transform: true,
     forbidNonWhitelisted: true,
   }));
+
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   const port = process.env.PORT || 4000;
   await app.listen(port);

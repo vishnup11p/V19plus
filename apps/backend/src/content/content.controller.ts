@@ -11,8 +11,6 @@ import {
   Req,
   HttpCode,
   HttpStatus,
-  ParseUUIDPipe,
-  BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
@@ -21,6 +19,8 @@ import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { CreateContentDto } from './dto/create-content.dto';
+import { UpdateContentDto } from './dto/update-content.dto';
 
 /** Extract userId from a Bearer token without hard-failing if absent */
 function optionalUserId(req: Request): string | undefined {
@@ -108,17 +108,14 @@ export class ContentController {
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() body: any) {
-    if (!body.title || !body.type) {
-      throw new BadRequestException('title and type are required');
-    }
+  create(@Body() body: CreateContentDto) {
     return this.contentService.createContent(body);
   }
 
   @Put(':id')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('ADMIN')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateContentDto) {
     return this.contentService.updateContent(id, body);
   }
 

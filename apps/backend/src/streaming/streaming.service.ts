@@ -6,13 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
-
-export interface UpsertHistoryDto {
-  contentId: string;
-  episodeId?: string;
-  progress: number; // 0–100
-  completed?: boolean;
-}
+import { UpsertHistoryDto } from './dto/upsert-history.dto';
 
 /** Write progress to DB at most once every 30 s per viewing session */
 const FLUSH_INTERVAL_MS = 30_000;

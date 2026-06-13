@@ -1,8 +1,9 @@
-import { Controller, Get, Put, Post, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Get, Put, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { CreateProfileDto } from './dto/create-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('user')
 @UseGuards(AuthGuard)
@@ -17,7 +18,7 @@ export class UserController {
   @Put('profile')
   updateProfile(
     @CurrentUser('userId') userId: string,
-    @Body() body: { name?: string; avatarUrl?: string }
+    @Body() body: UpdateProfileDto
   ) {
     return this.userService.updateProfile(userId, body);
   }
@@ -30,7 +31,7 @@ export class UserController {
   @Post('profiles')
   createProfile(
     @CurrentUser('userId') userId: string,
-    @Body() body: { name: string; avatarColor?: string; isKids?: boolean; pin?: string }
+    @Body() body: CreateProfileDto
   ) {
     return this.userService.createProfile(userId, body);
   }

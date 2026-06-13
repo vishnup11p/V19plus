@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
@@ -9,18 +9,8 @@ interface ListQuery {
   limit?: number;
 }
 
-interface UpsertHistoryData {
-  contentId: string;
-  episodeId?: string;
-  progress: number;
-  completed?: boolean;
-}
-
 @Injectable()
-export class ContentService implements OnModuleDestroy {
-  private pendingFlushes = new Map<string, NodeJS.Timeout>();
-  private readonly FLUSH_INTERVAL_MS = 30000;
-
+export class ContentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
@@ -315,97 +305,6 @@ export class ContentService implements OnModuleDestroy {
     return { message: 'Removed from watchlist' };
   }
 
-  // Watch History Buffering and CRUD
-  private historyEntryKey(contentId: string, episodeId?: string | null): string {
-    return episodeId ? `${contentId}:${episodeId}` : contentId;
-  }
-
-  async flushToDb(userId: string, data: UpsertHistoryData) {
-    const completed = data.completed ?? data.progress >= 95;
-    const episodeId = data.episodeId || null;
-    const entryKey = this.historyEntryKey(data.contentId, episodeId);
-
-    await this.prisma.watchHistory.upsert({
-      where: { userId_entryKey: { userId, entryKey } },
-      create: {
-        userId,
-        contentId: data.contentId,
-        episodeId,
-        entryKey,
-        progress: data.progress,
-        completed,
-      },
-      update: {
-        progress: data.progress,
-        completed,
-        updatedAt: new Date(),
-      },
-    });
-  }
-
-  async getHistory(userId: string) {
-    const history = await this.prisma.watchHistory.findMany({
-      where: { userId },
-      orderBy: { updatedAt: 'desc' },
-      include: {
-        content: {
-          include: {
-            cast: { take: 2 },
-            genres: { include: { genre: true } },
-          },
-        },
-        episode: true,
-      },
-    });
-
-    return history.map((h) => ({
-      ...h,
-      content: this.mapContent(h.content),
-    }));
-  }
-
-  async upsertHistory(userId: string, data: UpsertHistoryData) {
-    const content = await this.prisma.content.findUnique({ where: { id: data.contentId } });
-    if (!content) throw new NotFoundException('Content not found');
-
-    const bufferKey = `history:buffer:${userId}:${data.contentId}:${data.episodeId || 'movie'}`;
-    await this.redis.set(bufferKey, data, 120); // cache buffer for 2 mins
-
-    const flushKey = `${userId}:${data.contentId}:${data.episodeId || 'movie'}`;
-    if (!this.pendingFlushes.has(flushKey)) {
-      const timeout = setTimeout(async () => {
-        try {
-          const buffered = await this.redis.get<UpsertHistoryData>(bufferKey);
-          if (buffered) {
-            await this.flushToDb(userId, buffered);
-            await this.redis.del(bufferKey);
-          }
-        } catch {
-          // ignore failures
-        } finally {
-          this.pendingFlushes.delete(flushKey);
-        }
-      }, this.FLUSH_INTERVAL_MS);
-      this.pendingFlushes.set(flushKey, timeout);
-    }
-
-    const completed = data.completed ?? data.progress >= 95;
-    return { contentId: data.contentId, episodeId: data.episodeId, progress: data.progress, completed };
-  }
-
-  async getProgress(userId: string, contentId: string, episodeId?: string) {
-    const entryKey = this.historyEntryKey(contentId, episodeId || null);
-    const record = await this.prisma.watchHistory.findUnique({
-      where: { userId_entryKey: { userId, entryKey } },
-    });
-    if (!record) return null;
-    return { progress: record.progress, completed: record.completed, episodeId: record.episodeId };
-  }
-
-  async removeFromHistory(userId: string, contentId: string) {
-    await this.prisma.watchHistory.deleteMany({ where: { userId, contentId } });
-    return { message: 'Removed from watch history' };
-  }
 
   // Admin CRUD Content
   async createContent(data: any) {
@@ -488,12 +387,5 @@ export class ContentService implements OnModuleDestroy {
     await this.redis.del('content:featured');
     await this.redis.del('content:trending');
     return { message: 'Content deleted' };
-  }
-
-  onModuleDestroy() {
-    // Clear all timeouts on shutdown to avoid hanging handles
-    for (const timeout of this.pendingFlushes.values()) {
-      clearTimeout(timeout);
-    }
   }
 }

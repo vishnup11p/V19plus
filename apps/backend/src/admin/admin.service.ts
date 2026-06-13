@@ -7,6 +7,8 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { ContentService } from '../content/content.service';
+import { CreateContentDto } from '../content/dto/create-content.dto';
+import { UpdateContentDto } from '../content/dto/update-content.dto';
 
 function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -123,11 +125,11 @@ export class AdminService {
     }));
   }
 
-  createContent(data: Record<string, unknown>) {
+  createContent(data: CreateContentDto) {
     return this.contentService.createContent(data);
   }
 
-  updateContent(id: string, data: Record<string, unknown>) {
+  updateContent(id: string, data: UpdateContentDto) {
     return this.contentService.updateContent(id, data);
   }
 
