@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,8 +41,42 @@ const itemVariants = {
 function LoginContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { fetchMe } = useAuthStore();
+  const { fetchMe, login, signup } = useAuthStore();
   const handledRef = useRef(false);
+
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      toast.error('Email and password are required');
+      return;
+    }
+    if (isSignUp && !name.trim()) {
+      toast.error('Name is required to sign up');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      if (isSignUp) {
+        await signup(email, password, name);
+        toast.success('Registration successful! Welcome 🎉');
+      } else {
+        await login(email, password);
+        toast.success('Signed in successfully! 👋');
+      }
+      router.replace('/');
+    } catch (err: any) {
+      const errMessage = err?.response?.data?.message || err?.message || 'Authentication failed';
+      toast.error(Array.isArray(errMessage) ? errMessage[0] : errMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (handledRef.current) return;
@@ -273,37 +307,107 @@ function LoginContent() {
           >
             {/* Header */}
             <motion.div
-              className="mb-6 sm:mb-8"
+              className="mb-5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
-              <h2 className="text-xl sm:text-2xl font-bold text-white">Welcome back 👋</h2>
-              <p className="text-gray-400 mt-1.5 text-sm leading-relaxed">
-                Sign in to pick up where you left off. New here? An account is created automatically on your first sign-in.
-              </p>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">
+                {isSignUp ? 'Create account' : 'Sign In'}
+              </h2>
             </motion.div>
+
+            {/* Credentials Form */}
+            <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+              {isSignUp && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    className="w-full px-4 py-3 bg-[#252525] border border-white/10 rounded-xl text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50 transition-colors text-sm"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  className="w-full px-4 py-3 bg-[#252525] border border-white/10 rounded-xl text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50 transition-colors text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 bg-[#252525] border border-white/10 rounded-xl text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50 transition-colors text-sm"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-3 mt-2 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl text-sm transition-all active:scale-98 shadow-md shadow-orange-900/20 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  isSignUp ? 'Sign Up' : 'Sign In'
+                )}
+              </button>
+            </form>
+
+            {/* Toggle Sign In/Up */}
+            <div className="text-center text-sm mb-6 text-gray-400">
+              {isSignUp ? (
+                <p>
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setIsSignUp(false)}
+                    className="text-orange-500 hover:text-orange-400 font-semibold focus:outline-none"
+                  >
+                    Sign In
+                  </button>
+                </p>
+              ) : (
+                <p>
+                  New to V19+?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setIsSignUp(true)}
+                    className="text-orange-500 hover:text-orange-400 font-semibold focus:outline-none"
+                  >
+                    Sign Up now
+                  </button>
+                </p>
+              )}
+            </div>
 
             {/* Divider with label */}
-            <motion.div
-              className="flex items-center gap-3 mb-5 sm:mb-6"
-              initial={{ opacity: 0, scaleX: 0.5 }}
-              animate={{ opacity: 1, scaleX: 1 }}
-              transition={{ delay: 0.35, duration: 0.4 }}
-            >
+            <div className="flex items-center gap-3 mb-5">
               <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-gray-500 font-medium">Continue with</span>
+              <span className="text-2xs text-gray-500 font-semibold uppercase tracking-wider">or</span>
               <div className="h-px flex-1 bg-white/10" />
-            </motion.div>
+            </div>
 
             {/* Google sign-in */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-            >
+            <div className="flex justify-center">
               <GoogleSignInButton />
-            </motion.div>
+            </div>
 
             {/* Footer links */}
             <motion.div

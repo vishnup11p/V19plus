@@ -6,6 +6,8 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  login: (email: string, password?: string) => Promise<void>;
+  signup: (email: string, password?: string, name?: string) => Promise<void>;
   googleLogin: (credential: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -30,6 +32,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   isAdmin: () => get().user?.role === 'ADMIN',
+
+  login: async (email, password) => {
+    const { data } = await authApi.login(email, password);
+    set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false });
+  },
+
+  signup: async (email, password, name) => {
+    const { data } = await authApi.signup(email, password, undefined, name);
+    set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false });
+  },
 
   googleLogin: async (credential) => {
     const { data } = await authApi.googleLogin(credential);
