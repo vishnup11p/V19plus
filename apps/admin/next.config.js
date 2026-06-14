@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+const backendUrl = process.env.BACKEND_URL || 'https://v19plus-api.onrender.com';
 
 const nextConfig = {
   reactStrictMode: true,

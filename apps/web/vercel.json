@@ -3,5 +3,13 @@
   "framework": "nextjs",
   "installCommand": "cd ../.. && npm install",
   "buildCommand": "cd ../.. && npm run build --workspace=@v19plus/types --workspace=@v19plus/utils && npm run build --workspace=v19plus-web",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "env": {
+    "BACKEND_URL": "https://v19plus-api.onrender.com"
+  },
+  "build": {
+    "env": {
+      "BACKEND_URL": "https://v19plus-api.onrender.com"
+    }
+  }
 }
