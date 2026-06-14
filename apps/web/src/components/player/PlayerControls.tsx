@@ -168,16 +168,29 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
                   value={isMuted ? 0 : volume}
                   onChange={(e) => setVolume(Number(e.target.value))}
                   className="w-full h-1"
-                  style={{ accentColor: '#E50914' }}
+                  style={{ accentColor: '#FF5C00' }}
                 />
               </div>
             </div>
-
+ 
             {/* Time */}
             <span className="text-sm text-white/70 font-mono hidden sm:inline-block">
               {formatTime(progress)} / {formatTime(duration)}
             </span>
           </div>
+ 
+          {/* Skip Intro Button */}
+          {progress > 10 && progress < 85 && duration > 150 && (
+            <button
+              onClick={() => onSeek(85)}
+              className="absolute right-6 -top-12 z-30 px-6 py-2.5 bg-black/60 border border-white/20 hover:border-n-red hover:bg-black text-white text-sm font-black rounded-lg backdrop-blur-md transition-all active:scale-95 shadow-lg shadow-black/40 hover:shadow-orange-500/10 flex items-center gap-1.5"
+            >
+              Skip Intro
+              <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+                <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+              </svg>
+            </button>
+          )}
 
           {/* Right controls */}
           <div className="flex items-center gap-2 md:gap-3">

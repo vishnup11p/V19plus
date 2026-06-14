@@ -12,7 +12,7 @@ export const userApi = {
   updateProfile: (data: { name?: string; avatarUrl?: string }) =>
     api.put('/user/profile', data),
   listProfiles: () => api.get<Profile[]>('/user/profiles'),
-  createProfile: (data: { name: string; avatarColor?: string; isKids?: boolean }) =>
+  createProfile: (data: { name: string; avatarColor?: string; isKids?: boolean; pin?: string }) =>
     api.post<Profile>('/user/profiles', data),
   deleteProfile: (id: string) => api.delete(`/user/profiles/${id}`),
 };
