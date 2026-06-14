@@ -22,18 +22,25 @@ api.interceptors.response.use(
   (res) => res,
   async (err) => {
     const original = err.config;
-    if (err.response?.status === 401 && !original._retry) {
+    // Prevent retry loop: don't retry if already retried, or if it's a refresh/login call
+    const isRefreshCall = original?.url?.includes('/auth/refresh') || original?.url?.includes('/auth/admin-login') || original?.url?.includes('/auth/login');
+    if (
+      err.response?.status === 401 &&
+      !original._retry &&
+      !isRefreshCall
+    ) {
       original._retry = true;
       try {
         const { data } = await api.post('/auth/refresh');
         accessToken = data.accessToken;
         original.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(original);
-      } catch {
+      } catch (refreshErr) {
         accessToken = null;
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }
+        return Promise.reject(refreshErr);
       }
     }
     return Promise.reject(err);

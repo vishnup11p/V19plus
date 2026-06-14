@@ -46,9 +46,13 @@ export interface AdminContent {
   tags: string[];
   releaseYear: number;
   rating: string;
+  imdbScore?: number;
+  duration?: number;
   thumbnailUrl: string;
   backdropUrl: string;
   videoUrl?: string;
+  trailerUrl?: string;
+  isOriginal: boolean;
   isFeatured: boolean;
   isPublished: boolean;
 }

@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAdminAuthStore } from '../store/authStore';
 
 const queryClient = new QueryClient({
@@ -13,13 +13,20 @@ const queryClient = new QueryClient({
 
 function AuthInit({ children }: { children: React.ReactNode }) {
   const fetchMe = useAdminAuthStore((s) => s.fetchMe);
-  const isLoading = useAdminAuthStore((s) => s.isLoading);
+  const [initializing, setInitializing] = useState(true);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    fetchMe();
+    // Only call fetchMe once, not on every re-render
+    if (initialized.current) return;
+    initialized.current = true;
+
+    fetchMe().finally(() => {
+      setInitializing(false);
+    });
   }, [fetchMe]);
 
-  if (isLoading) {
+  if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0f0f0f]">
         <div className="flex flex-col items-center gap-3">

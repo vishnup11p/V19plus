@@ -16,7 +16,7 @@ interface AdminAuthState {
 export const useAdminAuthStore = create<AdminAuthState>((set) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: true,
+  isLoading: false, // Start as false — don't block UI until we know auth state
 
   adminLogin: async (email, password) => {
     const { data } = await authApi.adminLogin(email, password);
@@ -45,6 +45,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set) => ({
       const { data } = await authApi.me();
       set({ user: data, isAuthenticated: true, isLoading: false });
     } catch {
+      // No valid session — user needs to log in
       setAdminToken(null);
       set({ user: null, isAuthenticated: false, isLoading: false });
     }

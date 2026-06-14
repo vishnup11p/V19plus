@@ -25,11 +25,16 @@ const emptyForm = {
   genre: 'Action',
   releaseYear: new Date().getFullYear(),
   rating: 'PG-13',
+  imdbScore: '',
+  duration: '',
   thumbnailUrl: '',
   backdropUrl: '',
   videoUrl: '',
+  trailerUrl: '',
+  isOriginal: false,
   isFeatured: false,
   isPublished: true,
+  tags: '',
 };
 
 export default function AdminContent() {
@@ -54,12 +59,16 @@ export default function AdminContent() {
       const payload = {
         ...form,
         genre: form.genre.split(',').map((g) => g.trim()).filter(Boolean),
-        tags: [],
+        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
         slug: form.slug || form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        imdbScore: form.imdbScore ? Number(form.imdbScore) : null,
+        duration: form.duration ? Number(form.duration) : null,
+        trailerUrl: form.trailerUrl || null,
+        videoUrl: form.videoUrl || null,
       };
       return editing
-        ? adminApi.updateContent(editing.id, payload)
-        : adminApi.createContent(payload);
+        ? adminApi.updateContent(editing.id, payload as any)
+        : adminApi.createContent(payload as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-content'] });
@@ -116,11 +125,16 @@ export default function AdminContent() {
       genre: Array.isArray(item.genre) ? item.genre.join(', ') : String(item.genre),
       releaseYear: item.releaseYear,
       rating: item.rating,
+      imdbScore: item.imdbScore !== undefined && item.imdbScore !== null ? String(item.imdbScore) : '',
+      duration: item.duration !== undefined && item.duration !== null ? String(item.duration) : '',
       thumbnailUrl: item.thumbnailUrl,
       backdropUrl: item.backdropUrl,
       videoUrl: item.videoUrl || '',
+      trailerUrl: item.trailerUrl || '',
+      isOriginal: item.isOriginal || false,
       isFeatured: item.isFeatured,
       isPublished: item.isPublished,
+      tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
     });
     setShowForm(true);
   };
@@ -174,7 +188,7 @@ export default function AdminContent() {
             e.preventDefault();
             saveMutation.mutate();
           }}
-          className="bg-[#141414] rounded-2xl p-6 border border-[#222] space-y-6"
+          className="bg-[#141414] rounded-2xl p-6 border border-[#222] space-y-6 animate-slideDown"
         >
           <div className="flex items-center justify-between pb-3 border-b border-[#222]">
             <h2 className="font-semibold text-white text-lg">
@@ -227,6 +241,7 @@ export default function AdminContent() {
               >
                 <option value="MOVIE">Movie</option>
                 <option value="SERIES">TV Series</option>
+                <option value="DOCUMENTARY">Documentary</option>
               </select>
             </div>
 
@@ -235,12 +250,14 @@ export default function AdminContent() {
               value={form.genre}
               onChange={(v) => setForm({ ...form, genre: v })}
               placeholder="Action, Sci-Fi, Adventure"
+              required
             />
 
             <Input
               label="Release Year"
               value={String(form.releaseYear)}
               onChange={(v) => setForm({ ...form, releaseYear: Number(v) || new Date().getFullYear() })}
+              required
             />
 
             <Input
@@ -248,7 +265,31 @@ export default function AdminContent() {
               value={form.rating}
               onChange={(v) => setForm({ ...form, rating: v })}
               placeholder="PG-13, R, TV-MA"
+              required
             />
+
+            <Input
+              label="IMDb Score (Optional)"
+              value={form.imdbScore}
+              onChange={(v) => setForm({ ...form, imdbScore: v })}
+              placeholder="e.g. 8.2"
+            />
+
+            <Input
+              label="Duration in Minutes (Optional)"
+              value={form.duration}
+              onChange={(v) => setForm({ ...form, duration: v })}
+              placeholder="e.g. 142"
+            />
+
+            <div className="md:col-span-2">
+              <Input
+                label="Tags (comma-separated - Optional)"
+                value={form.tags}
+                onChange={(v) => setForm({ ...form, tags: v })}
+                placeholder="e.g. blockbuster, space, mind-bending"
+              />
+            </div>
 
             <Input
               label="Poster Thumbnail URL"
@@ -275,7 +316,28 @@ export default function AdminContent() {
               />
             </div>
 
-            <div className="flex gap-6 items-center md:col-span-2 py-2">
+            <div className="md:col-span-2">
+              <Input
+                label="Trailer Video URL (Optional)"
+                value={form.trailerUrl}
+                onChange={(v) => setForm({ ...form, trailerUrl: v })}
+                placeholder="https://domain.com/trailer.mp4"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-x-8 gap-y-3 items-center md:col-span-2 py-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={form.isOriginal}
+                  onChange={(e) => setForm({ ...form, isOriginal: e.target.checked })}
+                  className="w-4.5 h-4.5 text-red-600 bg-[#0f0f0f] border-[#222] rounded focus:ring-red-500 focus:ring-offset-[#0f0f0f] focus:ring-2"
+                />
+                <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
+                  V19+ Original Title
+                </span>
+              </label>
+
               <label className="flex items-center gap-3 cursor-pointer group">
                 <input
                   type="checkbox"
@@ -391,7 +453,18 @@ export default function AdminContent() {
                     </div>
                     <p className="text-xs text-gray-500">
                       {item.releaseYear} &bull; {item.rating} &bull; {Array.isArray(item.genre) ? item.genre.join(', ') : item.genre}
+                      {item.duration ? ` &bull; ${item.duration} min` : ''}
+                      {item.imdbScore ? ` &bull; ⭐ ${item.imdbScore}` : ''}
                     </p>
+                    {item.tags && item.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {item.tags.map((tag) => (
+                          <span key={tag} className="text-[10px] bg-white/5 border border-white/10 text-gray-400 px-1.5 py-0.2 rounded font-normal">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <p className="text-xs text-gray-400 line-clamp-2 pt-1 font-normal leading-relaxed">
                       {item.description}
                     </p>
@@ -407,8 +480,13 @@ export default function AdminContent() {
                         {item.isPublished ? 'Published' : 'Draft'}
                       </span>
                       {item.isFeatured && (
-                        <span className="bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
+                        <span className="bg-orange-500/10 border border-orange-500/20 text-orange-500 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
                           Featured
+                        </span>
+                      )}
+                      {item.isOriginal && (
+                        <span className="bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded">
+                          Original
                         </span>
                       )}
                     </div>
