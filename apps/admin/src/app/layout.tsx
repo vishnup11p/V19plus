@@ -1,9 +1,9 @@
-import { Providers } from '../components/Providers';
+﻿import { Providers } from '../components/Providers';
 import '../globals.css';
 
 export const metadata = {
-  title: 'V19+ Admin',
-  description: 'Admin panel for V19+ OTT platform.',
+  title: 'V19Plus Admin',
+  description: 'Admin panel for V19Plus OTT platform.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

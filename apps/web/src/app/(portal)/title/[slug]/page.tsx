@@ -97,7 +97,7 @@ export default function TitleDetailPage() {
           {/* Badges */}
           <div className="flex flex-wrap gap-2 mb-4">
             {content.isOriginal && (
-              <span className="text-2xs font-black uppercase tracking-widest text-n-red">V19+ Original</span>
+              <span className="text-2xs font-black uppercase tracking-widest text-n-red">V19Plus Original</span>
             )}
           </div>
 

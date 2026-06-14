@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+﻿import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -120,7 +120,7 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
           {content.isOriginal && !rank && (
             <div className="absolute top-2 left-2">
               <span className="text-2xs font-black text-n-red uppercase tracking-wider">
-                V19+
+                V19Plus
               </span>
             </div>
           )}

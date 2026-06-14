@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,11 +17,11 @@ import { useUiStore } from '../../store/uiStore';
 // FAQ Mock Data
 const FAQS = [
   {
-    q: 'What is V19+?',
-    a: 'V19+ is a premium OTT streaming platform offering thousands of award-winning movies, TV shows, documentaries, and exclusive V19+ Originals. You can stream anytime, anywhere, in stunning 4K HDR with Dolby Atmos surround sound.'
+    q: 'What is V19Plus?',
+    a: 'V19Plus is a premium OTT streaming platform offering thousands of award-winning movies, TV shows, documentaries, and exclusive V19Plus Originals. You can stream anytime, anywhere, in stunning 4K HDR with Dolby Atmos surround sound.'
   },
   {
-    q: 'How much does V19+ cost?',
+    q: 'How much does V19Plus cost?',
     a: 'We offer plans tailored to your needs. Basic starts at ₹199/month, Standard is ₹499/month, and Premium is ₹799/month. There are no hidden fees, contract terms, or cancellation charges.'
   },
   {
@@ -30,11 +30,11 @@ const FAQS = [
   },
   {
     q: 'How do I cancel my subscription?',
-    a: 'V19+ is completely flexible. You can cancel your subscription online in just two clicks via your Profile dashboard. There are no cancellation fees.'
+    a: 'V19Plus is completely flexible. You can cancel your subscription online in just two clicks via your Profile dashboard. There are no cancellation fees.'
   },
   {
     q: 'Is there a kids mode?',
-    a: 'Yes! V19+ includes a Kids profile option with age-appropriate content filters, customizable avatars, and optional PIN locks to ensure a safe viewing environment.'
+    a: 'Yes! V19Plus includes a Kids profile option with age-appropriate content filters, customizable avatars, and optional PIN locks to ensure a safe viewing environment.'
   }
 ];
 
@@ -132,7 +132,7 @@ export default function HomePage() {
         />
 
         <ContentRow
-          title="V19+ Originals"
+          title="V19Plus Originals"
           items={originals}
           isLoading={originalsLoading}
         />
@@ -222,7 +222,7 @@ export default function HomePage() {
       <section className="py-24 px-4 md:px-12 bg-gradient-to-b from-n-bg to-n-black">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16 space-y-3">
-            <h2 className="text-3xl md:text-5xl font-black text-white">Why Choose V19+?</h2>
+            <h2 className="text-3xl md:text-5xl font-black text-white">Why Choose V19Plus?</h2>
             <p className="text-n-muted text-base md:text-lg">Premium viewing features built for entertainment lovers.</p>
           </div>
 
@@ -357,7 +357,7 @@ export default function HomePage() {
       {/* Footer pre-signup row */}
       <section className="py-16 text-center border-t border-white/5 bg-n-bg px-4">
         <div className="max-w-xl mx-auto space-y-4">
-          <p className="text-sm text-gray-400 uppercase tracking-widest font-semibold">Join V19+ Today</p>
+          <p className="text-sm text-gray-400 uppercase tracking-widest font-semibold">Join V19Plus Today</p>
           <h3 className="text-2xl sm:text-3xl font-black text-white">Ready to stream? Enter your email to begin.</h3>
           <form onSubmit={handleGetStarted} className="flex flex-col sm:flex-row gap-3 pt-2">
             <input

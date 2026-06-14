@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Content } from '../../api/content';
@@ -70,7 +70,7 @@ export function HeroBanner({ content, contents, isLoading }: HeroBannerProps) {
               {current.isOriginal && (
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-2xs font-black uppercase tracking-[0.25em] text-n-red bg-n-red/10 border border-n-red/20 px-2 py-0.5 rounded">
-                    V19+ Original
+                    V19Plus Original
                   </span>
                 </div>
               )}

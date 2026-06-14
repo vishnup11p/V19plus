@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -18,7 +18,7 @@ const FILTERS = [
 
 const TRENDING_TERMS = [
   'Action Thrillers',
-  'V19+ Originals',
+  'V19Plus Originals',
   'Binge-worthy Series',
   'Oscar Winners',
   'Sci-Fi Favorites'

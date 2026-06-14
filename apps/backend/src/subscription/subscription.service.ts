@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+﻿import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import Stripe from 'stripe';
 import * as crypto from 'crypto';
@@ -147,7 +147,7 @@ export class SubscriptionService {
         line_items: [{
           price_data: {
             currency: planConfig.currency,
-            product_data: { name: `V19+ ${planConfig.name}` },
+            product_data: { name: `V19Plus ${planConfig.name}` },
             unit_amount: planConfig.price * 100,
             recurring: { interval: 'month' },
           },

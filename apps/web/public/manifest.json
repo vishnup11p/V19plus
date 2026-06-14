@@ -1,6 +1,6 @@
-{
-  "name": "V19+",
-  "short_name": "V19+",
+﻿{
+  "name": "V19Plus",
+  "short_name": "V19Plus",
   "description": "Stream unlimited movies, TV shows, and documentaries.",
   "start_url": "/",
   "display": "standalone",

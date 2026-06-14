@@ -1,4 +1,4 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+﻿import type { CapacitorConfig } from '@capacitor/cli';
 
 /**
  * Live-reload the production Vercel app inside the native WebView.
@@ -6,7 +6,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const config: CapacitorConfig = {
   appId: 'com.v19plus.app',
-  appName: 'V19+',
+  appName: 'V19Plus',
   webDir: 'public',
   server: {
     url: process.env.CAPACITOR_SERVER_URL || 'https://v19plus-web.vercel.app',

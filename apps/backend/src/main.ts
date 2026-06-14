@@ -1,4 +1,4 @@
-import { existsSync } from 'fs';
+﻿import { existsSync } from 'fs';
 import { join } from 'path';
 import * as dotenv from 'dotenv';
 import { NestFactory } from '@nestjs/core';
@@ -103,7 +103,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
-  logger.log(`V19+ NestJS API running on port ${port}`);
+  logger.log(`V19Plus NestJS API running on port ${port}`);
 }
 
 bootstrap();

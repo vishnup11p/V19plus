@@ -1,4 +1,4 @@
-import { useSiteSettings } from '../../hooks/useSiteSettings';
+﻿import { useSiteSettings } from '../../hooks/useSiteSettings';
 
 const FOOTER_LINKS = [
   { label: 'Audio Description', href: '#' },
@@ -17,7 +17,7 @@ const FOOTER_LINKS = [
 
 export function Footer() {
   const { data: settings } = useSiteSettings();
-  const siteName = settings?.siteName || 'V19+';
+  const siteName = settings?.siteName || 'V19Plus';
 
   return (
     <footer className="mt-16 bg-n-bg border-t border-n-divider py-14 px-4 md:px-16">

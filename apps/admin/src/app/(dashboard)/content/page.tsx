@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -334,7 +334,7 @@ export default function AdminContent() {
                   className="w-4.5 h-4.5 text-red-600 bg-[#0f0f0f] border-[#222] rounded focus:ring-red-500 focus:ring-offset-[#0f0f0f] focus:ring-2"
                 />
                 <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">
-                  V19+ Original Title
+                  V19Plus Original Title
                 </span>
               </label>
 

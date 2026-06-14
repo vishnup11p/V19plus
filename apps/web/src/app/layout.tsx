@@ -1,14 +1,14 @@
-import { Providers } from '../components/Providers';
+﻿import { Providers } from '../components/Providers';
 import '../index.css';
 
 export const metadata = {
-  title: 'V19+ | Stream Unlimited',
+  title: 'V19Plus | Stream Unlimited',
   description: 'Stream unlimited movies, TV shows, and documentaries.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'V19+',
+    title: 'V19Plus',
   },
 };
 

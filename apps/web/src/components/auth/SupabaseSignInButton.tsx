@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -21,7 +21,7 @@ export function SupabaseSignInButton() {
           setLoading(true);
           try {
             await supabaseLogin(session.access_token);
-            toast.success('Welcome to V19+! 🎉');
+            toast.success('Welcome to V19Plus! 🎉');
             router.push(returnUrl);
           } catch (err: any) {
             const msg = err?.response?.data?.message || 'Authentication with backend failed';

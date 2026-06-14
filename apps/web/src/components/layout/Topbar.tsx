@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +21,7 @@ export function Topbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const siteName = settings?.siteName || 'V19+';
+  const siteName = settings?.siteName || 'V19Plus';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);

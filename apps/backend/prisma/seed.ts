@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+﻿import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -19,7 +19,7 @@ const CAST_POOL = [
 ];
 
 async function main() {
-  console.log('🌱 Seeding V19+ PostgreSQL Database...');
+  console.log('🌱 Seeding V19Plus PostgreSQL Database...');
 
   // Clean DB
   await prisma.watchHistory.deleteMany();
@@ -121,7 +121,7 @@ async function main() {
       data: {
         title: m.title,
         slug: m.slug,
-        description: `${m.title} — A gripping ${m.genre[0].toLowerCase()} experience exclusive on V19+.`,
+        description: `${m.title} — A gripping ${m.genre[0].toLowerCase()} experience exclusive on V19Plus.`,
         type: 'MOVIE',
         tags: m.tags,
         releaseYear: 2024 + (idx % 2),
@@ -269,10 +269,10 @@ async function main() {
     where: { id: 'default' },
     create: {
       id: 'default',
-      siteName: 'V19+',
+      siteName: 'V19Plus',
       tagline: 'Stream Unlimited',
       primaryColor: '#FF6B1A',
-      footerText: '© 2026 V19+. All rights reserved.',
+      footerText: '© 2026 V19Plus. All rights reserved.',
     },
     update: {},
   });

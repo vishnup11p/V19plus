@@ -143,7 +143,7 @@ export default function Login() {
         <div className="text-center mb-10">
           <Link href="/" className="inline-block" aria-label="Go to homepage">
             <span className="text-4xl font-black tracking-tight text-white">
-              <span className="text-red-500">V19</span>+
+              <span className="text-red-500">V19Plus</span>
             </span>
           </Link>
           <div className="mt-3 flex items-center justify-center gap-2">

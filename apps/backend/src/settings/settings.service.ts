@@ -1,14 +1,14 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 const DEFAULTS = {
   id: 'default',
-  siteName: 'V19+',
+  siteName: 'V19Plus',
   tagline: 'Stream Unlimited',
   logoUrl: null as string | null,
   faviconUrl: null as string | null,
   primaryColor: '#FF6B1A',
-  footerText: '© 2026 V19+. All rights reserved.',
+  footerText: '© 2026 V19Plus. All rights reserved.',
 };
 
 @Injectable()

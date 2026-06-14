@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
@@ -121,7 +121,7 @@ function LoginContent() {
         {/* Logo */}
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-2 group">
-            <img src="/logo.png" alt="V19+" className="h-14 md:h-16 object-contain transition-transform hover:scale-105 duration-300" />
+            <img src="/logo.png" alt="V19Plus" className="h-14 md:h-16 object-contain transition-transform hover:scale-105 duration-300" />
           </Link>
         </div>
 
@@ -197,7 +197,7 @@ function LoginContent() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
-          <img src="/logo.png" alt="V19+" className="h-20 object-contain" />
+          <img src="/logo.png" alt="V19Plus" className="h-20 object-contain" />
         </motion.div>
 
         {/* Tagline */}
@@ -250,7 +250,7 @@ function LoginContent() {
               transition={{ delay: 0.3 }}
             >
               <h2 className="text-xl sm:text-2xl font-bold text-white">
-                {isSignUp ? 'Join the V19+ Family' : 'Welcome back to V19+'}
+                {isSignUp ? 'Join the V19Plus Family' : 'Welcome back to V19Plus'}
               </h2>
               <p className="text-xs text-gray-400 mt-1">
                 {isSignUp 
@@ -346,7 +346,7 @@ function LoginContent() {
                 </p>
               ) : (
                 <p>
-                  New to V19+?{' '}
+                  New to V19Plus?{' '}
                   <button
                     type="button"
                     onClick={() => setIsSignUp(true)}

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -89,7 +89,7 @@ function SignupContent() {
     try {
       // 1. Fire registration request
       await signupStore(email, password, name);
-      toast.success('Account created and plan activated! Welcome to V19+ 🎉');
+      toast.success('Account created and plan activated! Welcome to V19Plus 🎉');
       
       // 2. Redirect to Profile selection
       router.replace('/profile/select');
@@ -116,7 +116,7 @@ function SignupContent() {
       {/* Header Logo */}
       <div className="mb-8 relative z-10">
         <Link href="/">
-          <img src="/logo.png" alt="V19+" className="h-12 object-contain" />
+          <img src="/logo.png" alt="V19Plus" className="h-12 object-contain" />
         </Link>
       </div>
 
@@ -341,7 +341,7 @@ function SignupContent() {
                 {/* Plan breakdown invoice snippet */}
                 <div className="bg-[#181818] rounded-xl p-4 border border-white/5 space-y-1">
                   <div className="flex justify-between text-xs text-gray-400">
-                    <span>V19+ {PLANS.find(p => p.id === selectedPlan)?.name} membership</span>
+                    <span>V19Plus {PLANS.find(p => p.id === selectedPlan)?.name} membership</span>
                     <span>{PLANS.find(p => p.id === selectedPlan)?.price}/mo</span>
                   </div>
                   <div className="flex justify-between text-xs font-bold text-white pt-2 border-t border-white/5">

@@ -62,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="h-16 flex items-center px-6 border-b border-[#222]">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-2xl font-black tracking-tight text-white">
-              <span className="text-red-500">V19</span>+
+              <span className="text-red-500">V19Plus</span>
             </span>
             <span className="bg-red-500/10 border border-red-500/20 text-red-500 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">
               Admin
@@ -115,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#141414] border-b border-[#222] flex items-center justify-between px-4 z-30">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-xl font-black tracking-tight text-white">
-            <span className="text-red-500">V19</span>+
+            <span className="text-red-500">V19Plus</span>
           </span>
           <span className="bg-red-500/10 border border-red-500/20 text-red-500 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded">
             Admin

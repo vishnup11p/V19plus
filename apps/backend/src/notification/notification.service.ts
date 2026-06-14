@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+﻿import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as nodemailer from 'nodemailer';
 
@@ -12,7 +12,7 @@ interface EmailJob {
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
   private transporter: nodemailer.Transporter;
-  private FROM = `"V19+" <noreply@v19plus.com>`;
+  private FROM = `"V19Plus" <noreply@v19plus.com>`;
 
   // In-memory queue
   private emailQueue: EmailJob[] = [];
@@ -30,7 +30,7 @@ export class NotificationService {
     });
 
     if (process.env.SMTP_USER) {
-      this.FROM = `"V19+" <${process.env.SMTP_USER}>`;
+      this.FROM = `"V19Plus" <${process.env.SMTP_USER}>`;
       this.logger.log('📧 Nodemailer transporter configured');
     } else {
       this.logger.log('📧 Nodemailer running in sandbox mode (logs only)');
@@ -102,7 +102,7 @@ export class NotificationService {
     await this.transporter.sendMail({
       from: this.FROM,
       to: email,
-      subject: 'Verify your V19+ account',
+      subject: 'Verify your V19Plus account',
       html: `
         <div style="background:#0A0A0A;color:#F5F5F0;padding:40px;font-family:Segoe UI,sans-serif;">
           <h1 style="color:#FF6B1A;">V19<span style="color:#FF6B1A;">+</span></h1>
@@ -128,7 +128,7 @@ export class NotificationService {
     await this.transporter.sendMail({
       from: this.FROM,
       to: email,
-      subject: 'Reset your V19+ password',
+      subject: 'Reset your V19Plus password',
       html: `
         <div style="background:#0A0A0A;color:#F5F5F0;padding:40px;font-family:Segoe UI,sans-serif;">
           <h1 style="color:#FF6B1A;">V19<span style="color:#FF6B1A;">+</span></h1>

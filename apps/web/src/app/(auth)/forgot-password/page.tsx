@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
       {/* Header Logo */}
       <div className="mb-8 relative z-10">
         <Link href="/">
-          <img src="/logo.png" alt="V19+" className="h-12 object-contain" />
+          <img src="/logo.png" alt="V19Plus" className="h-12 object-contain" />
         </Link>
       </div>
 

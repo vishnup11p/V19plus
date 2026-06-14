@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -85,7 +85,7 @@ export default function Dashboard() {
       {/* Welcome banner */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Overview</h1>
-        <p className="text-gray-400">Manage, scale, and analyze your V19+ OTT streaming platform.</p>
+        <p className="text-gray-400">Manage, scale, and analyze your V19Plus OTT streaming platform.</p>
       </div>
 
       {/* Metrics Cards Grid */}
@@ -255,7 +255,7 @@ export default function Dashboard() {
           </div>
           <div className="pt-6 border-t border-[#222] mt-6">
             <p className="text-xs text-gray-500 text-center">
-              V19+ Admin Control Panel &bull; v1.0.0
+              V19Plus Admin Control Panel &bull; v1.0.0
             </p>
           </div>
         </div>

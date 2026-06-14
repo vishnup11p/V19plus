@@ -108,13 +108,13 @@ export function SplashScreen() {
           >
             <span>V19</span>
             <span className="text-n-red relative">
-              +
+              Plus
               <motion.span 
                 className="absolute inset-0 text-n-red blur-[15px]"
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
               >
-                +
+                Plus
               </motion.span>
             </span>
           </motion.div>
