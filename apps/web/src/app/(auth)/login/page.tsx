@@ -4,7 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleSignInButton } from '../../../components/auth/GoogleSignInButton';
+import { SupabaseSignInButton } from '../../../components/auth/SupabaseSignInButton';
 import { useAuthStore } from '../../../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -18,11 +18,7 @@ const PARTICLES = Array.from({ length: 24 }, (_, i) => ({
   duration: Math.random() * 8 + 10,
 }));
 
-const FEATURES = [
-  { icon: '🎬', label: 'Thousands of titles', sub: 'Movies, shows & originals' },
-  { icon: '🎧', label: 'Dolby Atmos audio', sub: 'Immersive surround sound' },
-  { icon: '📱', label: 'Watch anywhere', sub: 'Phone, tablet, TV or browser' },
-];
+
 
 // Stagger animation variants
 const containerVariants = {
@@ -49,6 +45,7 @@ function LoginContent() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,31 +77,13 @@ function LoginContent() {
 
   useEffect(() => {
     if (handledRef.current) return;
-    const google = searchParams.get('google');
-    const error = searchParams.get('error');
+    const error = searchParams.get('error') || searchParams.get('error_description');
 
     if (error) {
       handledRef.current = true;
-      const msg =
-        error === 'invalid_client'
-          ? 'Invalid Google OAuth client. Create a new Web application client in Google Cloud Console and update your .env files.'
-          : decodeURIComponent(error);
-      toast.error(msg, { duration: 6000 });
+      toast.error(decodeURIComponent(error), { duration: 6000 });
       router.replace('/login');
       return;
-    }
-
-    if (google === 'success') {
-      handledRef.current = true;
-      fetchMe()
-        .then(() => {
-          toast.success('Welcome back! 🎉');
-          router.replace('/');
-        })
-        .catch(() => {
-          toast.error('Sign-in succeeded but session could not be restored. Try again.');
-          router.replace('/login');
-        });
     }
   }, [searchParams, fetchMe, router]);
 
@@ -166,29 +145,7 @@ function LoginContent() {
             </p>
           </motion.div>
 
-          {/* Feature pills */}
-          <motion.div
-            className="flex flex-col gap-3"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-          >
-            {FEATURES.map((f, i) => (
-              <motion.div
-                key={f.label}
-                className="flex items-center gap-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl px-5 py-4 w-fit"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.1, duration: 0.5 }}
-              >
-                <span className="text-2xl">{f.icon}</span>
-                <div>
-                  <p className="text-sm font-semibold text-white">{f.label}</p>
-                  <p className="text-xs text-gray-500">{f.sub}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+
         </div>
 
         {/* Bottom note */}
@@ -264,27 +221,7 @@ function LoginContent() {
           Watch anywhere. Cancel anytime.
         </motion.p>
 
-        {/* Feature pills - horizontal on mobile */}
-        <motion.div
-          className="relative z-10 flex gap-3 overflow-x-auto w-full pb-2 scrollbar-hide"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          {FEATURES.map((f) => (
-            <motion.div
-              key={f.label}
-              variants={itemVariants}
-              className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl px-4 py-3 flex-shrink-0"
-            >
-              <span className="text-lg">{f.icon}</span>
-              <div>
-                <p className="text-xs font-semibold text-white whitespace-nowrap">{f.label}</p>
-                <p className="text-[10px] text-gray-500 whitespace-nowrap">{f.sub}</p>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+
       </div>
 
       {/* ── Sign-in card panel ── */}
@@ -313,8 +250,14 @@ function LoginContent() {
               transition={{ delay: 0.3 }}
             >
               <h2 className="text-xl sm:text-2xl font-bold text-white">
-                {isSignUp ? 'Create account' : 'Sign In'}
+                {isSignUp ? 'Join the V19+ Family' : 'Welcome back to V19+'}
               </h2>
+              <p className="text-xs text-gray-400 mt-1">
+                {isSignUp 
+                  ? 'Set up your account to start your entertainment journey.' 
+                  : 'We missed you! Sign in to jump right back into your favorites.'
+                }
+              </p>
             </motion.div>
 
             {/* Credentials Form */}
@@ -345,13 +288,31 @@ function LoginContent() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-4 py-3 bg-[#252525] border border-white/10 rounded-xl text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50 transition-colors text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 pr-12 bg-[#252525] border border-white/10 rounded-xl text-gray-200 placeholder:text-gray-600 focus:outline-none focus:border-orange-500/50 transition-colors text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  >
+                    {showPassword ? (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -404,9 +365,9 @@ function LoginContent() {
               <div className="h-px flex-1 bg-white/10" />
             </div>
 
-            {/* Google sign-in */}
-            <div className="flex justify-center">
-              <GoogleSignInButton />
+            {/* Supabase sign-in */}
+            <div className="flex justify-center w-full">
+              <SupabaseSignInButton />
             </div>
 
             {/* Footer links */}

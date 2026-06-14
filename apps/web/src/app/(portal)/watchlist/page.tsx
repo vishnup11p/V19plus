@@ -53,17 +53,19 @@ export default function WatchlistPage() {
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-28 text-center bg-n-surface/20 border border-n-divider/50 rounded-2xl p-8 max-w-xl mx-auto">
-            <div className="text-6xl mb-4">⭐</div>
-            <h2 className="text-xl font-bold text-n-white mb-2">Your list is empty</h2>
-            <p className="text-n-muted mb-6 max-w-sm">
-              Explore trending shows and films to add them to your collection.
+          <div className="flex flex-col items-center justify-center py-20 text-center bg-white/5 border border-white/10 rounded-3xl p-8 max-w-lg mx-auto shadow-xl backdrop-blur-md">
+            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-3xl mb-6 text-orange-500 animate-bounce">
+              🎬
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Your list is waiting for stories</h2>
+            <p className="text-sm text-gray-400 mb-6 max-w-xs leading-relaxed">
+              Don't worry, we have thousands of movies, series, and exclusives waiting. Let's find your next favorite together!
             </p>
             <button
-              onClick={() => router.push('/browse')}
-              className="px-6 py-2.5 bg-n-white text-black font-bold rounded-lg hover:bg-n-white/90 transition-all active:scale-95 text-sm"
+              onClick={() => router.push('/')}
+              className="px-6 py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-xl transition-all active:scale-95 text-sm shadow-md shadow-orange-900/20 hover:shadow-lg hover:shadow-orange-500/25"
             >
-              Browse Titles
+              Start Exploring
             </button>
           </div>
         )}

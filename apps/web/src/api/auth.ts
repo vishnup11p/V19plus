@@ -27,10 +27,8 @@ export const authApi = {
     api.post<{ user: User; accessToken: string }>('/auth/login', { email, password, passwordHash }),
   signup: (email: string, password?: string, passwordHash?: string, name?: string) =>
     api.post<{ user: User; accessToken: string }>('/auth/signup', { email, password, passwordHash, name }),
-  googleStatus: () => api.get<GoogleConfigStatus>('/auth/google/status'),
-  googleAuthUrl: () => api.get<{ url: string }>('/auth/google/url'),
-  googleLogin: (credential: string) =>
-    api.post<{ user: User; accessToken: string }>('/auth/google', { credential }),
+  supabaseLogin: (accessToken: string) =>
+    api.post<{ user: User; accessToken: string }>('/auth/supabase', { accessToken }),
   adminLogin: (email: string, password: string) =>
     api.post<{ user: User; accessToken: string }>('/admin/auth/login', { email, password }),
   logout: () => api.post('/auth/logout'),

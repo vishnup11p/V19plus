@@ -7,17 +7,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { OAuth2Client } from 'google-auth-library';
-import { normalizeGoogleClientId, isValidGoogleClientIdFormat } from './google-client.helper';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 type AuthUser = { id: string; email: string; name: string; role: string };
-type GoogleProfile = {
-  sub: string;
-  email: string;
-  name?: string;
-  given_name?: string;
-  picture?: string;
-};
 
 const ACCESS_SECRET = () =>
   process.env.JWT_ACCESS_SECRET || 'dev_access_secret_change_in_production';
@@ -26,30 +18,18 @@ const REFRESH_SECRET = () =>
 
 @Injectable()
 export class AuthService {
-  private googleClient: OAuth2Client | null = null;
+  private supabaseClient: SupabaseClient;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) {}
-
-  // ─── Google helpers ───────────────────────────────────────────────────────
-
-  private getGoogleClient(): OAuth2Client {
-    if (!this.googleClient) {
-      const clientId = this.getGoogleClientId();
-      const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
-      const redirectUri =
-        process.env.GOOGLE_REDIRECT_URI ||
-        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/auth/google/callback`;
-      this.googleClient = new OAuth2Client(clientId, clientSecret, redirectUri);
-    }
-    return this.googleClient;
+  ) {
+    const supabaseUrl = process.env.SUPABASE_URL || 'https://zwkrncxrxwyvpchfrvdr.supabase.co';
+    const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+    this.supabaseClient = createClient(supabaseUrl, supabaseKey);
   }
 
-  private getGoogleClientId(): string {
-    return normalizeGoogleClientId(process.env.GOOGLE_CLIENT_ID || '');
-  }
+
 
   // ─── Email/password auth ─────────────────────────────────────────────────
 
@@ -146,74 +126,33 @@ export class AuthService {
     return this.issueTokens(user);
   }
 
-  // ─── Google auth ─────────────────────────────────────────────────────────
+  // ─── Supabase auth ───────────────────────────────────────────────────────
 
-  async googleAuth(credential: string) {
-    const clientId = this.getGoogleClientId();
-    if (!clientId) {
-      throw new ServiceUnavailableException('Google sign-in is not configured on this server');
+  async supabaseAuth(token: string) {
+    if (!token) {
+      throw new BadRequestException('Supabase token is required');
     }
 
-    let payload: any;
+    let supabaseUser: any;
     try {
-      const ticket = await this.getGoogleClient().verifyIdToken({
-        idToken: credential,
-        audience: clientId,
-      });
-      payload = ticket.getPayload();
+      const { data, error } = await this.supabaseClient.auth.getUser(token);
+      if (error || !data?.user) {
+        throw new UnauthorizedException('Supabase session verification failed');
+      }
+      supabaseUser = data.user;
     } catch {
-      throw new UnauthorizedException('Google sign-in verification failed');
+      throw new UnauthorizedException('Supabase session verification failed');
     }
 
-    if (!payload?.email || !payload.sub) {
-      throw new UnauthorizedException('Invalid Google token payload');
+    if (!supabaseUser.email) {
+      throw new UnauthorizedException('Invalid Supabase token payload: missing email');
     }
 
-    const user = await this.upsertGoogleUser({
-      sub: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      given_name: payload.given_name,
-      picture: payload.picture,
-    });
-
-    return this.issueTokens(user);
-  }
-
-  async googleCallback(code: string) {
-    const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
-    if (!clientSecret) {
-      throw new ServiceUnavailableException('GOOGLE_CLIENT_SECRET is not configured');
-    }
-
-    let tokens: any;
-    try {
-      const result = await this.getGoogleClient().getToken(code);
-      tokens = result.tokens;
-    } catch {
-      throw new UnauthorizedException('Google OAuth token exchange failed');
-    }
-
-    if (!tokens.id_token) {
-      throw new UnauthorizedException('Google did not return an ID token');
-    }
-
-    const clientId = this.getGoogleClientId();
-    const ticket = await this.getGoogleClient().verifyIdToken({
-      idToken: tokens.id_token,
-      audience: clientId,
-    });
-    const payload = ticket.getPayload();
-    if (!payload?.email || !payload.sub) {
-      throw new UnauthorizedException('Invalid Google token payload');
-    }
-
-    const user = await this.upsertGoogleUser({
-      sub: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      given_name: payload.given_name,
-      picture: payload.picture,
+    const user = await this.upsertSupabaseUser({
+      id: supabaseUser.id,
+      email: supabaseUser.email,
+      name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || supabaseUser.email.split('@')[0],
+      picture: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture || null,
     });
 
     return this.issueTokens(user);
@@ -277,40 +216,15 @@ export class AuthService {
     return user;
   }
 
-  // ─── Google config helpers ────────────────────────────────────────────────
-
-  getGoogleSignInUrl(): string {
-    const clientId = this.getGoogleClientId();
-    if (!clientId) {
-      throw new ServiceUnavailableException('Google client ID not configured');
-    }
-    return this.getGoogleClient().generateAuthUrl({
-      access_type: 'online',
-      scope: ['openid', 'email', 'profile'],
-      prompt: 'select_account',
-    });
-  }
-
-  getGoogleConfigStatus() {
-    const clientId = this.getGoogleClientId();
-    const hasSecret = !!(process.env.GOOGLE_CLIENT_SECRET || '').trim();
-    return {
-      configured: !!clientId && isValidGoogleClientIdFormat(clientId),
-      clientIdPreview: clientId ? `${clientId.slice(0, 12)}...` : null,
-      hasClientSecret: hasSecret,
-      redirectUri:
-        process.env.GOOGLE_REDIRECT_URI ||
-        `${process.env.FRONTEND_URL || 'http://localhost:3000'}/api/auth/google/callback`,
-      formatValid: isValidGoogleClientIdFormat(clientId),
-    };
-  }
-
-  // ─── Private helpers ─────────────────────────────────────────────────────
-
-  private async upsertGoogleUser(payload: GoogleProfile) {
+  private async upsertSupabaseUser(payload: {
+    id: string;
+    email: string;
+    name: string;
+    picture?: string | null;
+  }) {
     let user = await this.prisma.user.findFirst({
       where: {
-        OR: [{ googleId: payload.sub }, { email: payload.email }],
+        OR: [{ supabaseId: payload.id }, { email: payload.email }],
       },
       select: {
         id: true,
@@ -326,7 +240,7 @@ export class AuthService {
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: {
-          googleId: payload.sub,
+          supabaseId: payload.id,
           isVerified: true,
           name: user.name || payload.name || payload.email.split('@')[0],
           avatarUrl: user.avatarUrl || payload.picture || null,
@@ -346,14 +260,14 @@ export class AuthService {
       user = await this.prisma.user.create({
         data: {
           email: payload.email,
-          googleId: payload.sub,
+          supabaseId: payload.id,
           name: payload.name || payload.email.split('@')[0],
           avatarUrl: payload.picture || null,
           isVerified: true,
           role: 'USER',
           profiles: {
             create: {
-              name: payload.given_name || 'Me',
+              name: payload.name.trim().split(' ')[0] || 'Me',
               avatarColor: '#FF6B1A',
             },
           },

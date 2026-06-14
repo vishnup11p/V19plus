@@ -2,7 +2,6 @@
 
 import React, { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
 import { io, Socket } from 'socket.io-client';
@@ -52,25 +51,21 @@ function AuthInit({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'your-client-id.apps.googleusercontent.com';
-
   return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <QueryClientProvider client={queryClient}>
-        <AuthInit>
-          {children}
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: '#1A1A1A',
-                color: '#F5F5F0',
-                border: '1px solid #2A2A28',
-              },
-            }}
-          />
-        </AuthInit>
-      </QueryClientProvider>
-    </GoogleOAuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthInit>
+        {children}
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: '#1A1A1A',
+              color: '#F5F5F0',
+              border: '1px solid #2A2A28',
+            },
+          }}
+        />
+      </AuthInit>
+    </QueryClientProvider>
   );
 }

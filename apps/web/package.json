@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
-    "@react-oauth/google": "^0.13.5",
+    "@supabase/supabase-js": "^2.39.8",
     "@tanstack/react-query": "^5.24.0",
     "@v19plus/types": "*",
     "@v19plus/utils": "*",

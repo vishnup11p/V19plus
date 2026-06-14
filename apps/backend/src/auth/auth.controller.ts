@@ -54,47 +54,12 @@ export class AuthController {
     return { user: result.user, accessToken: result.accessToken };
   }
 
-  @Get('google/status')
-  googleStatus() {
-    return this.authService.getGoogleConfigStatus();
-  }
-
-  @Get('google/url')
-  googleAuthUrl() {
-    return { url: this.authService.getGoogleSignInUrl() };
-  }
-
-  @Get('google/callback')
-  async googleCallback(
-    @Query('code') code: string | undefined,
-    @Query('error') oauthError: string | undefined,
-    @Res() res: Response
-  ) {
-    const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
-
-    if (oauthError) {
-      return res.redirect(`${frontend}/login?error=${encodeURIComponent(oauthError)}`);
-    }
-    if (!code) {
-      return res.redirect(`${frontend}/login?error=${encodeURIComponent('Missing authorization code')}`);
-    }
-
-    try {
-      const result = await this.authService.googleCallback(code);
-      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, getRefreshCookieOptions());
-      return res.redirect(`${frontend}/login?google=success`);
-    } catch (err: any) {
-      const msg = err instanceof Error ? err.message : 'Google sign-in failed';
-      return res.redirect(`${frontend}/login?error=${encodeURIComponent(msg)}`);
-    }
-  }
-
-  @Post('google')
-  async googleAuth(
-    @Body('credential') credential: string,
+  @Post('supabase')
+  async supabaseAuth(
+    @Body('accessToken') accessToken: string,
     @Res({ passthrough: true }) res: Response
   ) {
-    const result = await this.authService.googleAuth(credential);
+    const result = await this.authService.supabaseAuth(accessToken);
     res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, getRefreshCookieOptions());
     return { user: result.user, accessToken: result.accessToken };
   }

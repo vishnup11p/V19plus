@@ -7,6 +7,7 @@ export interface User {
   id: string;
   email: string;
   googleId?: string | null;
+  supabaseId?: string | null;
   name: string;
   avatarUrl?: string | null;
   isVerified: boolean;

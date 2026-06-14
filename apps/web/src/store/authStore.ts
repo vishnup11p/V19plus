@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { authApi, User } from '../api/auth';
+import { supabase } from '../utils/supabase';
 
 interface AuthState {
   user: User | null;
@@ -8,7 +9,7 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password?: string) => Promise<void>;
   signup: (email: string, password?: string, name?: string) => Promise<void>;
-  googleLogin: (credential: string) => Promise<void>;
+  supabaseLogin: (accessToken: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -43,8 +44,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false });
   },
 
-  googleLogin: async (credential) => {
-    const { data } = await authApi.googleLogin(credential);
+  supabaseLogin: async (accessToken) => {
+    const { data } = await authApi.supabaseLogin(accessToken);
     set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false });
   },
 
@@ -56,6 +57,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       await authApi.logout();
+    } catch {
+      // ignore
+    }
+    try {
+      await supabase.auth.signOut();
     } catch {
       // ignore
     }

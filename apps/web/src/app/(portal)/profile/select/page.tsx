@@ -114,8 +114,8 @@ export default function ProfileSelectPage() {
         transition={{ duration: 0.6 }}
         className="text-center relative z-10 w-full max-w-4xl"
       >
-        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 tracking-tight">Who\'s watching?</h1>
-        <p className="text-gray-400 text-sm sm:text-base mb-12">Choose a profile to start streaming V19+.</p>
+        <h1 className="text-4xl sm:text-5xl font-black text-white mb-2 tracking-tight">Who's watching?</h1>
+        <p className="text-gray-400 text-sm sm:text-base mb-12">Welcome! Select your profile to step back into your personal cinematic universe.</p>
 
         {/* Profile Card list */}
         <div className="flex flex-wrap justify-center gap-6 md:gap-8 max-w-2xl mx-auto mb-16">

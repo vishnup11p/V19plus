@@ -38,6 +38,15 @@ const FAQS = [
   }
 ];
 
+const getGreeting = (name?: string) => {
+  const hr = new Date().getHours();
+  const displayName = name ? name.split(' ')[0] : 'there';
+  if (hr < 12) return `Good morning, ${displayName}! 🌅`;
+  if (hr < 17) return `Good afternoon, ${displayName}! ☀️`;
+  if (hr < 22) return `Good evening, ${displayName}! 🍿`;
+  return `Good night, ${displayName}! 🌙`;
+};
+
 export default function HomePage() {
   const router = useRouter();
   const { data: featured, isLoading: featuredLoading } = useFeatured();
@@ -46,7 +55,7 @@ export default function HomePage() {
   const { data: continueWatching, isLoading: continueLoading } = useContinueWatching();
   const { data: recommended, isLoading: recommendedLoading } = useRecommended();
   
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { isAuthenticated, user } = useAuthStore();
   const activeGenre = useUiStore((s) => s.activeGenre);
   const { data: genreContent, isLoading: genreLoading } = useBrowse(undefined, activeGenre || undefined);
 
@@ -76,8 +85,25 @@ export default function HomePage() {
         {/* Hero Banner with Slideshow */}
         <HeroBanner contents={featured} isLoading={featuredLoading} />
 
+        {/* Dynamic Personal Greeting Banner */}
+        <div className="relative -mt-20 z-10 px-4 md:px-12 mb-6">
+          <div className="bg-[#181818]/70 border border-white/10 backdrop-blur-md rounded-2xl p-5 md:p-6 shadow-2xl flex items-center justify-between">
+            <div>
+              <h2 className="text-xl md:text-2xl font-black text-white">
+                {getGreeting(user?.name)}
+              </h2>
+              <p className="text-xs md:text-sm text-gray-400 mt-1">
+                We've curated a fresh selection of originals and trending titles for you today.
+              </p>
+            </div>
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-500 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" /> Curated Collection
+            </div>
+          </div>
+        </div>
+
         {/* Genre filter */}
-        <div className="relative -mt-16 z-10 mb-6">
+        <div className="relative z-10 mb-6">
           <GenreBar />
         </div>
 
