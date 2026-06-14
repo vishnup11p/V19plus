@@ -18,15 +18,19 @@ const REFRESH_SECRET = () =>
 
 @Injectable()
 export class AuthService {
-  private supabaseClient: SupabaseClient;
+  private supabaseClient: SupabaseClient | null = null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {
-    const supabaseUrl = process.env.SUPABASE_URL || 'https://zwkrncxrxwyvpchfrvdr.supabase.co';
+    const supabaseUrl = process.env.SUPABASE_URL || '';
     const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
-    this.supabaseClient = createClient(supabaseUrl, supabaseKey);
+    // Only initialise the Supabase client when both values are present.
+    // On Render (and other deploys) the key may not be configured yet.
+    if (supabaseUrl && supabaseKey) {
+      this.supabaseClient = createClient(supabaseUrl, supabaseKey);
+    }
   }
 
 
@@ -129,6 +133,12 @@ export class AuthService {
   // ─── Supabase auth ───────────────────────────────────────────────────────
 
   async supabaseAuth(token: string) {
+    if (!this.supabaseClient) {
+      throw new ServiceUnavailableException(
+        'Supabase OAuth is not configured on this server. Set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.',
+      );
+    }
+
     if (!token) {
       throw new BadRequestException('Supabase token is required');
     }
@@ -140,7 +150,9 @@ export class AuthService {
         throw new UnauthorizedException('Supabase session verification failed');
       }
       supabaseUser = data.user;
-    } catch {
+    } catch (err: any) {
+      // Re-throw NestJS exceptions as-is
+      if (err?.status) throw err;
       throw new UnauthorizedException('Supabase session verification failed');
     }
 
