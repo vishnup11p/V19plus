@@ -179,12 +179,12 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token not found — please log in again');
     }
     if (storedToken.expiresAt < new Date()) {
-      await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
+      await this.prisma.refreshToken.deleteMany({ where: { id: storedToken.id } });
       throw new UnauthorizedException('Refresh token expired — please log in again');
     }
 
     // Rotate: revoke old, issue new
-    await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
+    await this.prisma.refreshToken.deleteMany({ where: { id: storedToken.id } });
     return this.issueTokens(storedToken.user);
   }
 
