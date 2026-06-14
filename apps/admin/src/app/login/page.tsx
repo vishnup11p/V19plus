@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAdminAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
+import { SupabaseSignInButton } from '../../components/auth/SupabaseSignInButton';
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -293,6 +294,16 @@ export default function Login() {
               )}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-5">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-2xs text-gray-500 font-semibold uppercase tracking-wider">or</span>
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+
+          {/* Supabase SignIn */}
+          <SupabaseSignInButton />
         </div>
 
         {/* Footer */}

@@ -61,6 +61,8 @@ export interface AuthResponse {
 export const authApi = {
   adminLogin: (email: string, password: string) =>
     api.post<AuthResponse>('/auth/admin-login', { email, password }),
+  supabaseLogin: (accessToken: string) =>
+    api.post<AuthResponse>('/auth/supabase', { accessToken }),
   refresh: () => api.post<{ accessToken: string }>('/auth/refresh'),
   me: () => api.get<AuthResponse['user']>('/auth/me'),
   logout: () => api.post('/auth/logout'),
