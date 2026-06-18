@@ -18,28 +18,7 @@ export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') || '/browse';
-  const { signup, supabaseLogin } = useAuthStore();
-
-  // Handle Supabase OAuth callback
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.access_token) {
-          setGoogleLoading(true);
-          try {
-            await supabaseLogin(session.access_token);
-            toast.success('Account created! Welcome to V19Plus 🎉');
-            router.push(returnUrl);
-          } catch (err: any) {
-            const msg = err?.response?.data?.message || 'Google sign-up failed. Please try again.';
-            toast.error(msg);
-            setGoogleLoading(false);
-          }
-        }
-      }
-    );
-    return () => subscription.unsubscribe();
-  }, [supabaseLogin, router, returnUrl]);
+  const { signup } = useAuthStore();
 
   const validatePassword = (pw: string) => {
     if (pw.length < 8) return 'Password must be at least 8 characters.';
@@ -73,7 +52,10 @@ export default function SignupPage() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  const googleHref = `${apiBase}/auth/google`;
+
+  const handleGoogleSignIn = () => {
     const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
     if (isNative) {
       toast.error('Google Sign-In is not available in the mobile app. Please use email and password.', {
@@ -83,18 +65,7 @@ export default function SignupPage() {
     }
 
     setGoogleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/signup`,
-        },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      toast.error(err.message || 'Google Sign-Up failed. Please try again.');
-      setGoogleLoading(false);
-    }
+    window.location.href = googleHref;
   };
 
   return (
