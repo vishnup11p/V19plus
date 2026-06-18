@@ -18,11 +18,14 @@ interface VideoPlayerProps {
 export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSeconds = 0 }: VideoPlayerProps) {
   const router = useRouter();
   const playerRef = useRef<ReactPlayer>(null);
+  const hlsPlayerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
   const hasSeeked = useRef(false);
   const [duration, setDuration] = useState(0);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
+  const [isError, setIsError] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   const {
     isPlaying, progress, volume, isMuted, showControls, subtitles, playbackSpeed,
@@ -46,8 +49,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    let isScreenLocked = false;
-    let isWakeLocked = false;
+    let isMounted = true;
 
     const enableNativeFeatures = async () => {
       try {
@@ -55,12 +57,20 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         if (!Capacitor.isNativePlatform()) return;
 
         const { ScreenOrientation } = await import('@capacitor/screen-orientation');
+        if (!isMounted) return;
         await ScreenOrientation.lock({ orientation: 'landscape' });
-        isScreenLocked = true;
 
         const { KeepAwake } = await import('@capacitor-community/keep-awake');
+        if (!isMounted) {
+          await ScreenOrientation.unlock();
+          return;
+        }
         await KeepAwake.keepAwake();
-        isWakeLocked = true;
+
+        if (!isMounted) {
+          await KeepAwake.allowSleep();
+          await ScreenOrientation.unlock();
+        }
       } catch (err) {
         console.error('Failed to enable native video player locks:', err);
       }
@@ -69,25 +79,35 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     enableNativeFeatures();
 
     return () => {
+      isMounted = false;
       const disableNativeFeatures = async () => {
         try {
           const { Capacitor } = await import('@capacitor/core');
           if (!Capacitor.isNativePlatform()) return;
 
-          if (isScreenLocked) {
-            const { ScreenOrientation } = await import('@capacitor/screen-orientation');
-            await ScreenOrientation.unlock();
-          }
+          const { ScreenOrientation } = await import('@capacitor/screen-orientation');
+          await ScreenOrientation.unlock();
 
-          if (isWakeLocked) {
-            const { KeepAwake } = await import('@capacitor-community/keep-awake');
-            await KeepAwake.allowSleep();
-          }
+          const { KeepAwake } = await import('@capacitor-community/keep-awake');
+          await KeepAwake.allowSleep();
         } catch (err) {
           console.error('Failed to disable native video player locks:', err);
         }
       };
       disableNativeFeatures();
+    };
+  }, []);
+
+  // Subscribe to playerStore changes for HLS quality settings
+  useEffect(() => {
+    const unsubscribe = usePlayerStore.subscribe((state) => {
+      if (hlsPlayerRef.current && hlsPlayerRef.current.currentLevel !== state.currentQuality) {
+        hlsPlayerRef.current.currentLevel = state.currentQuality;
+      }
+    });
+    return () => {
+      unsubscribe();
+      hlsPlayerRef.current = null;
     };
   }, []);
 
@@ -177,7 +197,12 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     }
   };
 
-  if (!hasVideo) {
+  if (!hasVideo || isError) {
+    const errorTitle = isError ? "Playback Error" : "Content Unavailable";
+    const errorMsg = isError 
+      ? "We encountered an error playing this video. Please try again later."
+      : "We're sorry, but this content is currently not streaming in your region or the video file is missing.";
+
     return (
       <div className="relative w-full h-screen bg-[#141414] flex flex-col items-center justify-center text-center px-4 animate-fade-in">
         <div className="absolute top-6 left-6 flex items-center gap-4">
@@ -197,9 +222,9 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h2 className="text-xl font-black text-white">Content Unavailable</h2>
+          <h2 className="text-xl font-black text-white">{errorTitle}</h2>
           <p className="text-sm text-gray-400 leading-relaxed">
-            We're sorry, but this content is currently not streaming in your region or the video file is missing.
+            {errorMsg}
           </p>
           <button
             onClick={() => router.back()}
@@ -277,6 +302,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         onReady={(player) => {
           const internalPlayer = player.getInternalPlayer('hls');
           if (internalPlayer) {
+            hlsPlayerRef.current = internalPlayer;
             // It's an Hls.js instance
             internalPlayer.on('hlsManifestParsed', (event: any, data: any) => {
               if (data.levels) {
@@ -288,23 +314,25 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
                 usePlayerStore.getState().setQualities(levels);
               }
             });
-            
-            // Subscribe to store changes to apply currentQuality
-            usePlayerStore.subscribe((state) => {
-              if (internalPlayer.currentLevel !== state.currentQuality) {
-                internalPlayer.currentLevel = state.currentQuality;
-              }
-            });
           }
         }}
         onProgress={({ playedSeconds }) => updateProgress(playedSeconds)}
         onDuration={(d) => setDuration(d)}
         onEnded={handleEnded}
         onPause={saveProgressNow}
+        onBuffer={() => setIsBuffering(true)}
+        onBufferEnd={() => setIsBuffering(false)}
+        onError={() => setIsError(true)}
         progressInterval={1000}
       />
 
       <SubtitleOverlay visible={false} text="" />
+
+      {isBuffering && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-30 pointer-events-none">
+          <div className="w-16 h-16 border-4 border-n-red border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
 
       {showNextOverlay && onNextEpisode && (
         <NextEpisodeOverlay

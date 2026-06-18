@@ -94,6 +94,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   pause: () => {
     set({ isPlaying: false });
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
+    }
     get().saveProgressNow();
   },
 
@@ -146,6 +150,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   reset: () => {
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
+    }
     get().saveProgressNow();
     set({
       currentContent: null,

@@ -59,31 +59,41 @@ function CapacitorNativeInit() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    let cleanupFn: (() => void) | undefined;
+    let isSubscribed = true;
+    let listenerHandle: { remove: () => void } | null = null;
 
     const initCapacitor = async () => {
-      const { Capacitor } = await import('@capacitor/core');
-      if (!Capacitor.isNativePlatform()) return;
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!isSubscribed || !Capacitor.isNativePlatform()) return;
 
-      const { App } = await import('@capacitor/app');
-      
-      const backButtonHandler = await App.addListener('backButton', ({ canGoBack }) => {
-        if (canGoBack) {
-          window.history.back();
+        const { App } = await import('@capacitor/app');
+        
+        const handle = await App.addListener('backButton', ({ canGoBack }) => {
+          if (canGoBack) {
+            window.history.back();
+          } else {
+            App.exitApp();
+          }
+        });
+
+        if (!isSubscribed) {
+          handle.remove();
         } else {
-          App.exitApp();
+          listenerHandle = handle;
         }
-      });
-
-      cleanupFn = () => {
-        backButtonHandler.remove();
-      };
+      } catch (err) {
+        console.error('Failed to initialize Capacitor native back button:', err);
+      }
     };
 
     initCapacitor();
 
     return () => {
-      if (cleanupFn) cleanupFn();
+      isSubscribed = false;
+      if (listenerHandle) {
+        listenerHandle.remove();
+      }
     };
   }, []);
 

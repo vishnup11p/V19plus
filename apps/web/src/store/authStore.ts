@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { authApi, User } from '../api/auth';
-import { supabase } from '../utils/supabase';
 
 interface AuthState {
   user: User | null;
@@ -11,7 +10,6 @@ interface AuthState {
   checkEmail: (email: string) => Promise<boolean>;
   login: (email: string, password?: string) => Promise<void>;
   signup: (email: string, password?: string, name?: string) => Promise<void>;
-  supabaseLogin: (accessToken: string) => Promise<void>;
   adminLogin: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -66,11 +64,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   signup: async (email, password, name) => {
     const { data } = await authApi.signup(email, password, undefined, name, getDeviceInfo());
-    set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false, _initialized: true });
-  },
-
-  supabaseLogin: async (accessToken) => {
-    const { data } = await authApi.supabaseLogin(accessToken);
     set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false, _initialized: true });
   },
 
