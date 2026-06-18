@@ -51,6 +51,16 @@ jobs:
         chmod +x gradlew
         ./gradlew assembleDebug bundleRelease
 
+    - name: Sign App Bundle
+      uses: r0adkll/sign-android-release@v1
+      id: sign_app
+      with:
+        releaseDirectory: apps/web/android/app/build/outputs/bundle/release
+        signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
+        alias: ${{ secrets.KEYSTORE_ALIAS }}
+        keyStorePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+        keyPassword: ${{ secrets.KEYSTORE_PASSWORD }}
+
     - name: Upload Compiled APK
       uses: actions/upload-artifact@v4
       with:
@@ -62,5 +72,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: v19plus-aab
-        path: apps/web/android/app/build/outputs/bundle/release/app-release.aab
+        path: ${{steps.sign_app.outputs.signedReleaseFile}}
         retention-days: 7
