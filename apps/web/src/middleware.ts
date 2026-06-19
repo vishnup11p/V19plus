@@ -8,21 +8,43 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const hasToken = request.cookies.has('refreshToken');
+  const hasProfile = request.cookies.has('v19_active_profile_id');
 
-  // Protect private routes
-  const protectedPaths = ['/profile', '/watch', '/settings', '/subscription'];
-  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
-
-  if (isProtected && !hasToken) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // Redirect auth paths if already logged in
   const authPaths = ['/login', '/signup'];
   const isAuthPath = authPaths.some((p) => pathname === p || pathname.startsWith(p + '/'));
 
-  if (isAuthPath && hasToken) {
-    return NextResponse.redirect(new URL('/browse', request.url));
+  const publicPaths = ['/legal'];
+  const isPublicPath = publicPaths.some((p) => pathname === p || pathname.startsWith(p + '/'));
+
+  // Protect private routes
+  const protectedPaths = [
+    '/profile',
+    '/watch',
+    '/settings',
+    '/subscription',
+    '/browse',
+    '/downloads',
+    '/search',
+    '/title',
+    '/watchlist'
+  ];
+  const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
+
+  // 1. If logged in and trying to access login/signup, redirect to home
+  if (hasToken && isAuthPath) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // 2. If not logged in, and path is protected, redirect to login
+  if (!hasToken && isProtected) {
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  // 3. If logged in, but has no active profile, and is not on exempt path, redirect to profile select
+  const isProfileSelect = pathname === '/profile/select';
+  const isSubscription = pathname === '/subscription';
+  if (hasToken && !hasProfile && !isProfileSelect && !isSubscription && !isAuthPath && !isPublicPath) {
+    return NextResponse.redirect(new URL('/profile/select', request.url));
   }
 
   return NextResponse.next();

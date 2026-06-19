@@ -78,6 +78,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       // ignore
     }
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('v19_active_profile');
+      document.cookie = 'v19_active_profile_id=; Max-Age=0; path=/';
+    }
     set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
   },
 

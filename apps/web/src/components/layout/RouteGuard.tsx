@@ -21,6 +21,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
 
     const isProfileSelect = pathname === '/profile/select';
     const isSubscription = pathname === '/subscription';
+    const isLegal = pathname.startsWith('/legal');
 
     // 2. Check profile selection
     const activeProfileStr = typeof window !== 'undefined' ? sessionStorage.getItem('v19_active_profile') : null;
@@ -30,7 +31,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     const hasSub = hasActiveSubscription();
 
     // 4. Enforce gates
-    if (!isProfileSelect && !isSubscription) {
+    if (!isProfileSelect && !isSubscription && !isLegal) {
       if (!hasProfile) {
         router.replace('/profile/select');
         return;
