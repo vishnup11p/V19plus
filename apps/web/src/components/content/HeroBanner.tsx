@@ -49,10 +49,12 @@ export function HeroBanner({ content, contents, isLoading, hideContent = false }
               className="w-full h-full object-cover object-center"
               loading="eager"
             />
-            {/* Ambient overlay vignette */}
-            <div className="absolute inset-0 bg-hero-vignette z-0" />
-            <div className="absolute inset-0 bg-gradient-to-t from-n-bg via-n-bg/25 to-transparent z-0" />
-          </motion.div>
+             {/* Ambient overlay vignette */}
+             <div className="absolute inset-0 bg-hero-vignette z-0" />
+             {/* Ambient red glow overlay */}
+             <div className="absolute top-1/4 left-0 w-[400px] h-[400px] rounded-full bg-n-red/10 blur-[120px] pointer-events-none z-0" />
+             <div className="absolute bottom-0 left-0 right-0 h-full bg-gradient-to-t from-[#0a0a0a] via-transparent to-transparent z-0" />
+           </motion.div>
         </AnimatePresence>
       </div>
 
@@ -106,30 +108,46 @@ export function HeroBanner({ content, contents, isLoading, hideContent = false }
                   {current.description}
                 </p>
 
-                {/* Buttons */}
-                <div className="flex gap-4">
-                  <Link
-                    href={`/watch/${current.slug}`}
-                    className="flex items-center gap-3 px-6 sm:px-8 py-3 bg-white hover:bg-white/90 text-black font-extrabold rounded-md text-sm sm:text-base transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/30"
-                  >
-                    <svg className="w-6 h-6 fill-current text-black" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                    Play
-                  </Link>
-                  <Link
-                    href={`/title/${current.slug}`}
-                    className="flex items-center gap-3 px-6 sm:px-8 py-3 bg-white/25 hover:bg-white/20 text-white font-bold rounded-md text-sm sm:text-base backdrop-blur-md border border-white/10 transition-all hover:scale-105 active:scale-95"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    More Info
-                  </Link>
-                </div>
+                 {/* Buttons */}
+                 <div className="flex gap-4">
+                   <Link
+                     href={`/watch/${current.slug}`}
+                     className="flex items-center gap-3 px-6 sm:px-8 py-3 bg-white hover:bg-white/95 text-black font-extrabold rounded-md text-sm sm:text-base transition-all hover:scale-105 active:scale-95 shadow-lg shadow-black/30 hover:shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+                   >
+                     <svg className="w-6 h-6 fill-current text-black" viewBox="0 0 24 24">
+                       <path d="M8 5v14l11-7z" />
+                     </svg>
+                     Play
+                   </Link>
+                   <Link
+                     href={`/title/${current.slug}`}
+                     className="flex items-center gap-3 px-6 sm:px-8 py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-md text-sm sm:text-base backdrop-blur-md border border-white/10 hover:border-n-red/40 transition-all hover:scale-105 active:scale-95 hover:shadow-[0_0_20px_rgba(229,9,20,0.25)]"
+                   >
+                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                     </svg>
+                     More Info
+                   </Link>
+                 </div>
               </motion.div>
             </AnimatePresence>
           </div>
+        </div>
+      )}
+
+      {/* Carousel Indicator Dots */}
+      {items.length > 1 && (
+        <div className="absolute bottom-12 right-6 md:right-16 z-20 flex gap-1.5">
+          {items.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIndex(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === activeIndex ? 'w-6 bg-n-red shadow-[0_0_8px_rgba(229,9,20,0.8)]' : 'w-1.5 bg-white/30 hover:bg-white/50'
+              }`}
+              aria-label={`Slide ${i + 1}`}
+            />
+          ))}
         </div>
       )}
 

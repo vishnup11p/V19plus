@@ -1,4 +1,4 @@
-﻿import { Providers } from '../components/Providers';
+import { Providers } from '../components/Providers';
 import '../index.css';
 
 export const metadata = {
@@ -17,7 +17,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#141414',
+  themeColor: '#0a0a0a',
 };
 
 export default function RootLayout({
@@ -27,7 +27,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[#141414] text-[#e5e5e5] antialiased">
+      <body className="min-h-screen bg-[#0a0a0a] text-[#e5e5e5] antialiased">
         <Providers>
           {children}
         </Providers>

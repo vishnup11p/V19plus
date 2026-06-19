@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -78,7 +78,7 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
     >
       <Link href={`/title/${content.slug}`} className="block">
         {/* Thumbnail */}
-        <div className="relative aspect-[2/3] rounded-md overflow-hidden bg-n-surface">
+        <div className="relative aspect-[2/3] rounded-md overflow-hidden bg-n-surface border border-white/5 transition-all duration-300 group-hover:border-n-red/40 group-hover:shadow-[0_0_20px_rgba(229,9,20,0.3)]">
           {!imgError ? (
             <img
               src={content.thumbnailUrl}
@@ -138,7 +138,7 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="absolute left-1/2 -translate-x-1/2 -top-4 w-64 md:w-72 bg-n-bg rounded-lg overflow-hidden shadow-netflix z-30 pointer-events-auto"
+            className="absolute left-1/2 -translate-x-1/2 -top-4 w-64 md:w-72 bg-[#0a0a0a]/75 backdrop-blur-xl border border-white/10 rounded-lg overflow-hidden shadow-netflix shadow-[0_0_25px_rgba(229,9,20,0.25)] z-30 pointer-events-auto"
             style={{ zIndex: 30 }}
             onMouseEnter={() => clearTimeout(hoverTimeout.current)}
             onMouseLeave={() => setHovered(false)}
@@ -174,7 +174,7 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
               <div className="flex items-center gap-2 mb-2.5">
                 <button
                   onClick={handlePlay}
-                  className="w-9 h-9 rounded-full bg-n-white flex items-center justify-center hover:bg-n-white/80 transition-colors flex-shrink-0"
+                  className="w-9 h-9 rounded-full bg-n-white flex items-center justify-center hover:bg-n-white/90 hover:shadow-[0_0_12px_rgba(255,255,255,0.4)] transition-all flex-shrink-0"
                   title="Play"
                 >
                   <svg className="w-4 h-4 fill-black ml-0.5" viewBox="0 0 24 24">
@@ -183,7 +183,7 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
                 </button>
                 <button
                   onClick={handleWatchlist}
-                  className="w-9 h-9 rounded-full border-2 border-n-muted flex items-center justify-center hover:border-n-white text-n-muted hover:text-n-white transition-colors flex-shrink-0"
+                  className="w-9 h-9 rounded-full border-2 border-n-muted flex items-center justify-center hover:border-n-red text-n-muted hover:text-n-red hover:shadow-[0_0_8px_rgba(229,9,20,0.3)] transition-all flex-shrink-0"
                   title={inList ? 'Remove from My List' : 'Add to My List'}
                 >
                   {inList
@@ -194,7 +194,7 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
                 <div className="flex-1" />
                 <button
                   onClick={handleMoreInfo}
-                  className="w-9 h-9 rounded-full border-2 border-n-muted flex items-center justify-center hover:border-n-white text-n-muted hover:text-n-white transition-colors flex-shrink-0"
+                  className="w-9 h-9 rounded-full border-2 border-n-muted flex items-center justify-center hover:border-n-red text-n-muted hover:text-n-red hover:shadow-[0_0_8px_rgba(229,9,20,0.3)] transition-all flex-shrink-0"
                   title="More Info"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

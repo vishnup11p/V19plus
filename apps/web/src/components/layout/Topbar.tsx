@@ -47,7 +47,7 @@ export function Topbar() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled ? 'bg-n-bg shadow-lg shadow-black/30' : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent'
+        scrolled ? 'bg-[#0a0a0a]/70 backdrop-blur-xl border-b border-white/5 shadow-lg shadow-black/30' : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent'
       }`}
     >
       <div className="flex items-center justify-between px-4 md:px-12 h-16 md:h-[68px]">
@@ -85,25 +85,39 @@ export function Topbar() {
                 <Link
                   key={link.to}
                   href={link.to}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded text-sm font-semibold transition-all relative ${
                     isActive(link.to)
                       ? 'text-n-white'
-                      : 'text-n-muted hover:text-n-text'
+                      : 'text-n-muted hover:text-n-white'
                   }`}
                 >
-                  {link.label}
+                  <span className="relative z-10">{link.label}</span>
+                  {isActive(link.to) && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute bottom-[-4px] left-3 right-3 h-[2px] bg-n-red rounded-full shadow-[0_0_8px_rgba(229,9,20,0.8)]"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
                 </Link>
               ))}
               {isAuthenticated && (
                 <Link
                   href="/watchlist"
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`px-3 py-1.5 rounded text-sm font-semibold transition-all relative ${
                     isActive('/watchlist')
                       ? 'text-n-white'
-                      : 'text-n-muted hover:text-n-text'
+                      : 'text-n-muted hover:text-n-white'
                   }`}
                 >
-                  My List
+                  <span className="relative z-10">My List</span>
+                  {isActive('/watchlist') && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute bottom-[-4px] left-3 right-3 h-[2px] bg-n-red rounded-full shadow-[0_0_8px_rgba(229,9,20,0.8)]"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                    />
+                  )}
                 </Link>
               )}
             </nav>
@@ -153,11 +167,11 @@ export function Topbar() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 8 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 top-full mt-3 w-56 bg-n-bg border border-n-divider rounded-lg shadow-netflix overflow-hidden"
+                      className="absolute right-0 top-full mt-3 w-56 bg-[#0a0a0a]/75 backdrop-blur-xl border border-white/10 rounded-lg shadow-netflix overflow-hidden z-50"
                     >
                       {/* User info */}
-                      <div className="px-4 py-3 border-b border-n-divider">
-                        <p className="text-sm font-medium text-n-white truncate">{user?.name}</p>
+                      <div className="px-4 py-3 border-b border-white/5">
+                        <p className="text-sm font-semibold text-n-white truncate">{user?.name}</p>
                         <p className="text-xs text-n-muted truncate">{user?.email}</p>
                       </div>
                       {/* Links */}
@@ -172,7 +186,7 @@ export function Topbar() {
                             key={item.to}
                             href={item.to}
                             onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-n-text hover:bg-n-surface transition-colors"
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-n-text hover:bg-white/5 hover:text-white transition-colors"
                           >
                             <span className="w-5 text-center">{item.icon}</span>
                             {item.label}
@@ -180,19 +194,20 @@ export function Topbar() {
                         ))}
                         {user?.role === 'ADMIN' && (
                           <Link
+                            key="/admin"
                             href="/admin"
                             onClick={() => setProfileOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-n-red hover:bg-n-surface transition-colors"
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-n-red hover:bg-white/5 hover:text-n-white transition-colors"
                           >
                             <span className="w-5 text-center">🛡️</span>
                             Admin Panel
                           </Link>
                         )}
                       </div>
-                      <div className="border-t border-n-divider py-1">
+                      <div className="border-t border-white/5 py-1">
                         <button
                           onClick={() => { setProfileOpen(false); logout(); router.push('/login'); }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-n-muted hover:text-n-white hover:bg-n-surface transition-colors"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-n-muted hover:text-n-white hover:bg-white/5 transition-colors"
                         >
                           <span className="w-5 text-center">↩</span>
                           Sign Out

@@ -23,7 +23,7 @@
   body {
     margin: 0;
     min-height: 100vh;
-    background-color: #141414;
+    background-color: #0a0a0a;
     color: #e5e5e5;
     font-family: 'Netflix Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     overflow-x: hidden;
@@ -39,12 +39,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #333;
+    background: #222;
     border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: #333;
   }
 
   a {
@@ -80,32 +80,38 @@
   }
 
   .glass {
-    background: rgba(20, 20, 20, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(10, 10, 10, 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .ambient-glow-red {
+    background: radial-gradient(circle, rgba(229, 9, 20, 0.12) 0%, rgba(229, 9, 20, 0.02) 60%, transparent 100%);
+    filter: blur(50px);
   }
 
   .hero-gradient {
     background: linear-gradient(
       77deg,
-      rgba(0,0,0,.6) 0%,
+      rgba(0,0,0,.75) 0%,
       transparent 85%
     ),
     linear-gradient(
       to top,
-      rgba(20,20,20,1) 0%,
-      rgba(20,20,20,.3) 30%,
+      rgba(10,10,10,1) 0%,
+      rgba(10,10,10,.35) 30%,
       transparent 100%
     );
   }
 
   .card-hover {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
   }
 
   .card-hover:hover {
     transform: scale(1.04);
-    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    box-shadow: 0 12px 48px rgba(0,0,0,0.85);
     z-index: 10;
   }
 }
