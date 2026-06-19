@@ -6,6 +6,8 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
 import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
+import { useDownloadStore } from '../store/downloadStore';
 
 let socket: Socket | null = null;
 
@@ -56,11 +58,13 @@ function AuthInit({ children }: { children: React.ReactNode }) {
 }
 
 function CapacitorNativeInit() {
+  const router = useRouter();
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     let isSubscribed = true;
-    let listenerHandle: { remove: () => void } | null = null;
+    const activeHandles: any[] = [];
 
     const initCapacitor = async () => {
       try {
@@ -68,22 +72,78 @@ function CapacitorNativeInit() {
         if (!isSubscribed || !Capacitor.isNativePlatform()) return;
 
         const { App } = await import('@capacitor/app');
+        const { PushNotifications } = await import('@capacitor/push-notifications');
         
-        const handle = await App.addListener('backButton', ({ canGoBack }) => {
+        // 1. Back button handling
+        const backHandle = await App.addListener('backButton', ({ canGoBack }) => {
           if (canGoBack) {
             window.history.back();
           } else {
             App.exitApp();
           }
         });
+        activeHandles.push(backHandle);
 
+        // 2. Deep linking (URL handling)
+        const urlHandle = await App.addListener('appUrlOpen', (data) => {
+          try {
+            let targetPath = '';
+            if (data.url.startsWith('v19plus://')) {
+              targetPath = data.url.replace('v19plus://', '/');
+            } else {
+              const url = new URL(data.url);
+              targetPath = url.pathname + url.search;
+            }
+            if (targetPath && isSubscribed) {
+              router.push(targetPath);
+            }
+          } catch (e) {
+            console.error('Failed to parse deep link URL:', data.url, e);
+          }
+        });
+        activeHandles.push(urlHandle);
+
+        // 3. Push notifications
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive === 'granted') {
+          await PushNotifications.register();
+        }
+
+        const pushRegHandle = await PushNotifications.addListener('registration', (token) => {
+          console.log('Push registration success, token:', token.value);
+        });
+        activeHandles.push(pushRegHandle);
+
+        const pushErrHandle = await PushNotifications.addListener('registrationError', (error) => {
+          console.error('Push registration error:', error);
+        });
+        activeHandles.push(pushErrHandle);
+
+        const pushRecHandle = await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+          console.log('Push notification received:', notification);
+          toast(notification.body || notification.title || 'New Notification', { icon: '🔔' });
+        });
+        activeHandles.push(pushRecHandle);
+
+        const pushActHandle = await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+          console.log('Push notification clicked:', action);
+          const data = action.notification.data;
+          if (data && data.route && isSubscribed) {
+            router.push(data.route);
+          }
+        });
+        activeHandles.push(pushActHandle);
+
+        // If unmounted during async init, clean up immediately
         if (!isSubscribed) {
-          handle.remove();
-        } else {
-          listenerHandle = handle;
+          activeHandles.forEach((h) => h.remove());
         }
       } catch (err) {
-        console.error('Failed to initialize Capacitor native back button:', err);
+        console.error('Failed to initialize Capacitor native listeners:', err);
       }
     };
 
@@ -91,16 +151,20 @@ function CapacitorNativeInit() {
 
     return () => {
       isSubscribed = false;
-      if (listenerHandle) {
-        listenerHandle.remove();
-      }
+      activeHandles.forEach((h) => h.remove());
     };
-  }, []);
+  }, [router]);
 
   return null;
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const initDownloads = useDownloadStore((state) => state.initDownloads);
+
+  useEffect(() => {
+    initDownloads();
+  }, [initDownloads]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthInit>

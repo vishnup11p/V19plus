@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '../../../store/authStore';
@@ -11,11 +11,69 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError]           = useState('');
   const [loading, setLoading]       = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
 
   const router       = useRouter();
   const searchParams = useSearchParams();
   const returnUrl    = searchParams.get('returnUrl') || '/browse';
   const { login }    = useAuthStore();
+
+  const handleBiometricLogin = async () => {
+    try {
+      const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+      await NativeBiometric.verifyIdentity({
+        reason: 'Authenticate to access V19Plus',
+        title: 'Biometric Sign In',
+        subtitle: 'Use fingerprint/face scan to log in',
+        description: 'Please scan your fingerprint or face to authenticate'
+      });
+      
+      const creds = await NativeBiometric.getCredentials({ server: 'v19plus.app' });
+      if (creds && creds.username && creds.password) {
+        setLoading(true);
+        setError('');
+        await login(creds.username, creds.password);
+        router.push(returnUrl);
+      } else {
+        setError('Failed to retrieve biometric credentials.');
+      }
+    } catch (err: any) {
+      console.error('Biometric authentication failed:', err);
+      if (err?.code !== 100 && err?.message !== 'User canceled') {
+        setError('Biometric authentication failed. Please enter your password.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const checkBiometrics = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        
+        const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+        const avail = await NativeBiometric.isAvailable();
+        if (avail.isAvailable) {
+          setBiometricAvailable(true);
+          try {
+            const creds = await NativeBiometric.getCredentials({ server: 'v19plus.app' });
+            if (creds && creds.username) {
+              setHasSavedCredentials(true);
+              handleBiometricLogin();
+            }
+          } catch (e) {
+            // No saved credentials
+          }
+        }
+      } catch (e) {
+        console.error('Biometric check failed:', e);
+      }
+    };
+    checkBiometrics();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Email / Password sign-in ── */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,6 +86,21 @@ export default function LoginPage() {
     setError('');
     try {
       await login(email.trim(), password);
+      
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform() && biometricAvailable) {
+        try {
+          const { NativeBiometric } = await import('@capgo/capacitor-native-biometric');
+          await NativeBiometric.setCredentials({
+            username: email.trim(),
+            password: password,
+            server: 'v19plus.app',
+          });
+        } catch (e) {
+          console.error('Failed to store biometric credentials:', e);
+        }
+      }
+
       router.push(returnUrl);
     } catch (err: any) {
       const status = err?.response?.status;
@@ -173,6 +246,23 @@ export default function LoginPage() {
                 </>
               ) : 'Sign In'}
             </button>
+
+            {/* Biometric login */}
+            {biometricAvailable && hasSavedCredentials && (
+              <button
+                type="button"
+                onClick={handleBiometricLogin}
+                disabled={loading}
+                className="w-full mt-3 rounded-md border border-white/20 py-3.5 text-[15px] font-semibold text-white transition-all hover:bg-white/5 active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <svg className="h-5 w-5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 009 11a13.916 13.916 0 00-2.81-8.31l-.054-.09z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0-3.517 1.009-6.799 2.753-9.571m3.44 2.04l-.054.09A13.916 13.916 0 0015 11c0 3.517 1.009 6.799 2.753 9.571m-3.44-2.04l.054.09z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+                Sign In with Biometrics
+              </button>
+            )}
 
             <div className="flex items-center justify-between text-sm text-white/40">
               <label className="flex cursor-pointer items-center gap-2 hover:text-white/60 transition-colors">

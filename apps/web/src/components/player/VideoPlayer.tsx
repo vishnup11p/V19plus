@@ -7,6 +7,8 @@ import { SubtitleOverlay } from './SubtitleOverlay';
 import { NextEpisodeOverlay } from './NextEpisodeOverlay';
 import { Content } from '../../api/content';
 import { getPlaybackPrefs } from '../../utils/playbackPrefs';
+import { useDownloadStore } from '../../store/downloadStore';
+import { Capacitor } from '@capacitor/core';
 
 interface VideoPlayerProps {
   content: Content;
@@ -37,13 +39,19 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     .find((e) => e.id === episodeId);
 
   const videoUrl = episode?.videoUrl || content.videoUrl || '';
+  const { downloads } = useDownloadStore();
+  const downloadItem = downloads[episodeId || content.id];
+  const finalVideoUrl = (downloadItem && downloadItem.status === 'completed' && downloadItem.localUri)
+    ? (Capacitor.isNativePlatform() ? Capacitor.convertFileSrc(downloadItem.localUri) : downloadItem.localUri)
+    : videoUrl;
+
   const totalDuration = episode?.duration ? episode.duration * 60 : (content.duration || 0) * 60;
   const nextEpisode = content.seasons?.flatMap((s) => s.episodes).find((e, i, arr) => {
     const idx = arr.findIndex((ep) => ep.id === episodeId);
     return idx >= 0 && i === idx + 1;
   });
 
-  const hasVideo = !!videoUrl && (videoUrl.startsWith('http://') || videoUrl.startsWith('https://') || videoUrl.startsWith('/'));
+  const hasVideo = !!finalVideoUrl && (finalVideoUrl.startsWith('http://') || finalVideoUrl.startsWith('https://') || finalVideoUrl.startsWith('/') || finalVideoUrl.startsWith('file://') || finalVideoUrl.startsWith('capacitor://'));
 
   // Native orientation lock and keep awake hooks
   useEffect(() => {
@@ -286,7 +294,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
 
       <ReactPlayer
         ref={playerRef}
-        url={videoUrl}
+        url={finalVideoUrl}
         playing={isPlaying}
         volume={isMuted ? 0 : volume}
         playbackRate={playbackSpeed}
@@ -294,7 +302,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         height="100%"
         config={{
           file: {
-            forceHLS: videoUrl.endsWith('.m3u8'),
+            forceHLS: finalVideoUrl.endsWith('.m3u8'),
             attributes: { crossOrigin: 'anonymous' },
             tracks: activeTracks,
           }
