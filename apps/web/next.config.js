@@ -20,6 +20,20 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/privacy',
+        destination: '/legal/privacy',
+        permanent: true,
+      },
+      {
+        source: '/privacy-policy',
+        destination: '/legal/privacy',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
