@@ -158,7 +158,9 @@ jobs:
           retention-days: 7
 
       - name: Upload to Google Play Store (Internal Sharing / Testing)
-        if: secrets.PLAY_STORE_JSON_KEY != ''
+        env:
+          PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
+        if: env.PLAY_STORE_JSON_KEY != ''
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonRaw: ${{ secrets.PLAY_STORE_JSON_KEY }}
