@@ -1,8 +1,16 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
 import { useAuthStore } from '../store/authStore';
 
+const getBaseURL = () => {
+  if (Capacitor.isNativePlatform()) {
+    return 'https://v19plus-api.onrender.com/api';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || '/api';
+};
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api',
+  baseURL: getBaseURL(),
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
   timeout: 15000,
@@ -81,7 +89,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL || '/api'}/auth/refresh`,
+          `${getBaseURL()}/auth/refresh`,
           {},
           { withCredentials: true }
         );

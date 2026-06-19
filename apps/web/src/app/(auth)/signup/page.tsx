@@ -52,7 +52,7 @@ export default function SignupPage() {
     }
   };
 
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://v19plus-api.onrender.com/api';
   const googleHref = `${apiBase}/auth/google`;
 
   const handleGoogleSignIn = () => {

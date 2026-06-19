@@ -117,7 +117,7 @@ export default function LoginPage() {
   };
 
   /* ── Google OAuth — uses the backend Passport.js redirect ── */
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://v19plus-api.onrender.com/api';
   const googleHref = `${apiBase}/auth/google`;
 
   return (
