@@ -8,5 +8,14 @@ project(':capacitor-community-keep-awake').projectDir = new File('../../../node_
 include ':capacitor-app'
 project(':capacitor-app').projectDir = new File('../../../node_modules/@capacitor/app/android')
 
+include ':capacitor-filesystem'
+project(':capacitor-filesystem').projectDir = new File('../../../node_modules/@capacitor/filesystem/android')
+
+include ':capacitor-push-notifications'
+project(':capacitor-push-notifications').projectDir = new File('../../../node_modules/@capacitor/push-notifications/android')
+
 include ':capacitor-screen-orientation'
 project(':capacitor-screen-orientation').projectDir = new File('../../../node_modules/@capacitor/screen-orientation/android')
+
+include ':capgo-capacitor-native-biometric'
+project(':capgo-capacitor-native-biometric').projectDir = new File('../../../node_modules/@capgo/capacitor-native-biometric/android')
