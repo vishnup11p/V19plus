@@ -13,6 +13,8 @@ const VideoPlayer = dynamic(() => import('../../../../components/player/VideoPla
 import { historyApi } from '../../../../api/history';
 import { useAuthStore } from '../../../../store/authStore';
 
+import { RouteGuard } from '../../../../components/layout/RouteGuard';
+
 export default function WatchPage() {
   const params = useParams<{ slug: string }>();
   const searchParams = useSearchParams();
@@ -59,15 +61,17 @@ export default function WatchPage() {
       : 0;
 
   return (
-    <VideoPlayer
-      content={content}
-      episodeId={episodeId}
-      initialResumeSeconds={resumeSeconds}
-      onNextEpisode={
-        currentIndex >= 0 && currentIndex < allEpisodes.length - 1
-          ? handleNextEpisode
-          : undefined
-      }
-    />
+    <RouteGuard>
+      <VideoPlayer
+        content={content}
+        episodeId={episodeId}
+        initialResumeSeconds={resumeSeconds}
+        onNextEpisode={
+          currentIndex >= 0 && currentIndex < allEpisodes.length - 1
+            ? handleNextEpisode
+            : undefined
+        }
+      />
+    </RouteGuard>
   );
 }

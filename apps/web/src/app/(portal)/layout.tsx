@@ -7,6 +7,8 @@ import { DetailModal } from '../../components/content/DetailModal';
 import { SiteConfig } from '../../components/layout/SiteConfig';
 import { SplashScreen } from '../../components/ui/SplashScreen';
 
+import { RouteGuard } from '../../components/layout/RouteGuard';
+
 export default function PortalLayout({
   children,
 }: {
@@ -18,7 +20,9 @@ export default function PortalLayout({
       <SiteConfig />
       <Topbar />
       <main className="flex-1 pt-0">
-        {children}
+        <RouteGuard>
+          {children}
+        </RouteGuard>
       </main>
       <Footer />
       <DetailModal />
