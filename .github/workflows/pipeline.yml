@@ -40,7 +40,8 @@ jobs:
 
       - name: Check Backend Test Execution
         run: |
-          if npm run --workspace=apps/backend | grep -q "test"; then
+          HAS_TEST=$(node -e "const pkg = require('./apps/backend/package.json'); console.log(!!(pkg.scripts && pkg.scripts.test));")
+          if [ "$HAS_TEST" = "true" ]; then
             echo "Running backend tests..."
             npm run test --workspace=apps/backend
           else
