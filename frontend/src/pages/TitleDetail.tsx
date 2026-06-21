@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useContent } from '../hooks/useContent';
+import { useContent, useSimilar } from '../hooks/useContent';
+import { ContentCard } from '../components/content/ContentCard';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { useWatchlist } from '../hooks/useWatchlist';
@@ -11,6 +12,7 @@ import toast from 'react-hot-toast';
 export function TitleDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { data: content, isLoading } = useContent(slug || '');
+  const { data: similarContent } = useSimilar(content?.id || '');
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { inList: checkInList, add, remove } = useWatchlist();
@@ -193,7 +195,11 @@ export function TitleDetail() {
               <h2 className="text-lg font-bold text-n-white mb-4">Cast</h2>
               <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
                 {content.cast.map((member) => (
-                  <div key={member.id} className="flex-shrink-0 text-center w-20">
+                  <Link
+                    key={member.id}
+                    to={`/person/${encodeURIComponent(member.name)}`}
+                    className="flex-shrink-0 text-center w-20 hover:scale-105 transition-transform duration-200 block"
+                  >
                     <div className="w-16 h-16 rounded-full mx-auto mb-2 overflow-hidden bg-n-raised border-2 border-n-divider">
                       {member.photoUrl
                         ? <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
@@ -202,7 +208,7 @@ export function TitleDetail() {
                     </div>
                     <p className="text-xs font-semibold text-n-text truncate">{member.name}</p>
                     <p className="text-2xs text-n-muted truncate">{member.role}</p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>
@@ -260,6 +266,18 @@ export function TitleDetail() {
                       )}
                     </div>
                   </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* More Like This */}
+          {similarContent && similarContent.length > 0 && (
+            <section className="mb-16">
+              <h2 className="text-lg font-bold text-n-white mb-6">More Like This</h2>
+              <div className="flex flex-wrap gap-4">
+                {similarContent.slice(0, 12).map((item) => (
+                  <ContentCard key={item.id} content={item} size="md" />
                 ))}
               </div>
             </section>

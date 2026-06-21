@@ -8,5 +8,7 @@ router.use(searchLimiter);
 
 router.get('/', controller.search);
 router.get('/suggestions', controller.suggestions);
+router.get('/trending', controller.trendingSearches);
+router.get('/person/:name', controller.personSearch);
 
 export default router;

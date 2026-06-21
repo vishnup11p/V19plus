@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userApi, type Profile } from '../api/user';
+import { paymentApi } from '../api/notifications';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
-type Tab = 'account' | 'profiles' | 'subscription' | 'playback';
+type Tab = 'account' | 'profiles' | 'subscription' | 'billing' | 'playback';
 
 const PLAYBACK_KEY = 'v19-playback-prefs';
 
@@ -31,6 +32,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'account', label: 'Account', icon: '👤' },
   { id: 'profiles', label: 'Profiles', icon: '👥' },
   { id: 'subscription', label: 'Subscription', icon: '⭐' },
+  { id: 'billing', label: 'Billing History', icon: '🧾' },
   { id: 'playback', label: 'Playback', icon: '▶️' },
 ];
 
@@ -65,6 +67,12 @@ export function Settings() {
   const { data: profiles } = useQuery({
     queryKey: ['profiles'],
     queryFn: async () => (await userApi.listProfiles()).data,
+  });
+
+  const { data: payments } = useQuery({
+    queryKey: ['payments'],
+    queryFn: async () => (await paymentApi.list()).data,
+    enabled: tab === 'billing',
   });
 
   const updateMutation = useMutation({
@@ -269,6 +277,51 @@ export function Settings() {
                     >
                       View Plans →
                     </Link>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* T1-6: Billing history tab */}
+            {tab === 'billing' && (
+              <div className="bg-n-surface border border-n-divider rounded-2xl p-6">
+                <h2 className="text-lg font-bold text-n-white mb-5">Billing History</h2>
+                {!payments || payments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-4xl mb-3">🧾</p>
+                    <p className="text-n-muted text-sm">No payment records found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {payments.map((payment: any) => (
+                      <div key={payment.id} className="flex items-center justify-between p-4 bg-n-raised rounded-xl">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-lg bg-n-surface flex items-center justify-center text-lg">
+                            {payment.provider === 'STRIPE' ? '💳' : '💰'}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-n-white">
+                              {payment.currency} {(payment.amount / 100).toFixed(2)}
+                            </p>
+                            <p className="text-xs text-n-muted">
+                              {new Date(payment.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                            payment.status === 'SUCCESS' || payment.status === 'PAID'
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : payment.status === 'PENDING'
+                              ? 'bg-yellow-500/20 text-yellow-400'
+                              : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {payment.status}
+                          </span>
+                          <p className="text-2xs text-n-muted mt-1">{payment.provider}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

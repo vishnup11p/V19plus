@@ -92,6 +92,23 @@ export async function getOriginals() {
   return withSerializedGenreTags(items);
 }
 
+export async function getNewReleases() {
+  const cacheKey = 'content:new-releases';
+  const cached = await cacheGet<any>(cacheKey);
+  if (cached) return cached;
+
+  const items = await prisma.content.findMany({
+    where: { isPublished: true },
+    include: { cast: { take: 3 } },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  });
+
+  const result = withSerializedGenreTags(items);
+  await cacheSet(cacheKey, result, 3600);
+  return result;
+}
+
 export async function getContinueWatching(userId: string) {
   const history = await prisma.watchHistory.findMany({
     where: { userId, completed: false, progress: { gt: 0 } },
@@ -143,6 +160,139 @@ export async function getRecommended(userId: string) {
   }
 
   return withSerializedGenreTags(candidates.slice(0, 20));
+}
+
+// T2-1: "Because You Watched X" — per-title affinity rows
+export async function getBecauseYouWatched(userId: string) {
+  // Get user's 3 most recently watched distinct titles
+  const recentHistory = await prisma.watchHistory.findMany({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' },
+    take: 20,
+    include: { content: { select: { id: true, title: true, genre: true, tags: true } } },
+  });
+
+  const seen = new Set<string>();
+  const seedTitles: { id: string; title: string; genre: any; tags: any }[] = [];
+  for (const h of recentHistory as any[]) {
+    if (!seen.has(h.contentId)) {
+      seen.add(h.contentId);
+      seedTitles.push(h.content);
+      if (seedTitles.length >= 3) break;
+    }
+  }
+
+  if (seedTitles.length === 0) return [];
+
+  const watchedIds = [...seen];
+  const allContent = await prisma.content.findMany({
+    where: { isPublished: true, id: { notIn: watchedIds } },
+    include: { cast: { take: 2 } },
+    take: 200,
+  });
+
+  const rows = seedTitles.map((seed) => {
+    const seedGenres = asStringArray(seed.genre);
+    const seedTags = asStringArray(seed.tags);
+
+    const scored = (allContent as any[]).map((c) => {
+      const genres = asStringArray(c.genre);
+      const tags = asStringArray(c.tags);
+      const genreOverlap = genres.filter((g: string) => seedGenres.includes(g)).length;
+      const tagOverlap = tags.filter((t: string) => seedTags.includes(t)).length;
+      return { ...c, _score: genreOverlap * 2 + tagOverlap };
+    });
+
+    const similar = scored
+      .filter((c) => c._score > 0)
+      .sort((a, b) => b._score - a._score || (b.imdbScore || 0) - (a.imdbScore || 0))
+      .slice(0, 15);
+
+    if (similar.length < 3) return null;
+
+    return {
+      seedTitle: seed.title,
+      seedId: seed.id,
+      items: withSerializedGenreTags(similar),
+    };
+  });
+
+  return rows.filter(Boolean);
+}
+
+// T2-9: "More Like This"
+export async function getSimilar(contentId: string) {
+  const source = await prisma.content.findUnique({
+    where: { id: contentId },
+    select: { genre: true, tags: true, type: true },
+  });
+  if (!source) return [];
+
+  const sourceGenres = asStringArray(source.genre);
+  const sourceTags = asStringArray(source.tags);
+
+  const candidates = await prisma.content.findMany({
+    where: { isPublished: true, id: { not: contentId } },
+    include: { cast: { take: 2 } },
+    take: 100,
+  });
+
+  const scored = (candidates as any[]).map((c) => {
+    const genres = asStringArray(c.genre);
+    const tags = asStringArray(c.tags);
+    const genreOverlap = genres.filter((g: string) => sourceGenres.includes(g)).length;
+    const tagOverlap = tags.filter((t: string) => sourceTags.includes(t)).length;
+    const sameType = c.type === source.type ? 1 : 0;
+    return { ...c, _score: genreOverlap * 2 + tagOverlap + sameType };
+  });
+
+  const similar = scored
+    .filter((c) => c._score > 0)
+    .sort((a, b) => b._score - a._score || (b.imdbScore || 0) - (a.imdbScore || 0))
+    .slice(0, 20);
+
+  return withSerializedGenreTags(similar);
+}
+
+// T2-3: Match score — compute per-user affinity % for a list of content IDs
+export async function getMatchScores(userId: string, contentIds: string[]) {
+  if (contentIds.length === 0) return {};
+
+  const watched = await prisma.watchHistory.findMany({
+    where: { userId },
+    include: { content: { select: { genre: true } } },
+    take: 100,
+  });
+
+  const genreCount: Record<string, number> = {};
+  let totalWatched = 0;
+  watched.forEach((h: any) => {
+    asStringArray(h.content.genre).forEach((g) => {
+      genreCount[g] = (genreCount[g] || 0) + 1;
+      totalWatched++;
+    });
+  });
+
+  if (totalWatched === 0) return {};
+
+  const contents = await prisma.content.findMany({
+    where: { id: { in: contentIds } },
+    select: { id: true, genre: true, imdbScore: true },
+  });
+
+  const scores: Record<string, number> = {};
+  for (const c of contents as any[]) {
+    const genres = asStringArray(c.genre);
+    if (genres.length === 0) { scores[c.id] = 70; continue; }
+    const affinity = genres.reduce((sum: number, g: string) => sum + (genreCount[g] || 0), 0);
+    const maxPossible = Math.max(...Object.values(genreCount)) * genres.length;
+    const rawScore = maxPossible > 0 ? (affinity / maxPossible) * 100 : 50;
+    // Blend with IMDB score to avoid too-low scores for great content
+    const imdbBoost = ((c.imdbScore || 7) / 10) * 20;
+    scores[c.id] = Math.min(99, Math.round(rawScore * 0.7 + imdbBoost + 40));
+  }
+
+  return scores;
 }
 
 export async function getBySlug(slug: string, userId?: string) {

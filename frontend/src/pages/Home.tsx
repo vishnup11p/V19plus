@@ -1,9 +1,11 @@
 import { HeroBanner } from '../components/content/HeroBanner';
 import { GenreBar } from '../components/content/GenreBar';
 import { ContentRow } from '../components/content/ContentRow';
+import { ProfilePicker } from '../components/auth/ProfilePicker';
 import {
   useFeatured, useTrending, useOriginals,
-  useContinueWatching, useRecommended, useBrowse,
+  useContinueWatching, useRecommended, useBrowse, useNewReleases,
+  useBecauseYouWatched,
 } from '../hooks/useContent';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
@@ -13,9 +15,11 @@ export function Home() {
   const { data: featured, isLoading: featuredLoading } = useFeatured();
   const { data: trending, isLoading: trendingLoading } = useTrending();
   const { data: originals, isLoading: originalsLoading } = useOriginals();
+  const { data: newReleases, isLoading: newReleasesLoading } = useNewReleases();
   const { data: continueWatching, isLoading: continueLoading } = useContinueWatching();
   const { data: recommended, isLoading: recommendedLoading } = useRecommended();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { data: becauseYouWatched, isLoading: becauseLoading } = useBecauseYouWatched();
+  const { isAuthenticated, isLoading, activeProfile, setActiveProfile } = useAuthStore();
   const activeGenre = useUiStore((s) => s.activeGenre);
   const { data: genreContent, isLoading: genreLoading } = useBrowse(undefined, activeGenre || undefined);
 
@@ -31,6 +35,11 @@ export function Home() {
     return <Landing />;
   }
 
+  // Show profile picker until a profile is selected
+  if (!activeProfile) {
+    return <ProfilePicker onSelect={() => {}} />;
+  }
+
   const heroContent = featured?.[0];
 
   const continueItems = continueWatching?.map((h) => ({
@@ -38,7 +47,23 @@ export function Home() {
     progress: h.progress,
   }));
 
-  const topRated = trending?.filter((c) => (c.imdbScore || 0) >= 8.0);
+  // T1-5: Top 10 — take first 10 of trending
+  const top10 = trending?.slice(0, 10);
+  // Award winners for non-kids profiles
+  const topRated = activeProfile.isKids
+    ? []
+    : trending?.filter((c) => (c.imdbScore || 0) >= 8.0);
+
+  // T1-2: kids mode — filter content
+  const filteredOriginals = activeProfile.isKids
+    ? originals?.filter((c) => ['G', 'PG', 'U', 'U/A 7+'].includes(c.rating))
+    : originals;
+  const filteredRecommended = activeProfile.isKids
+    ? recommended?.filter((c) => ['G', 'PG', 'U', 'U/A 7+'].includes(c.rating))
+    : recommended;
+  const filteredNewReleases = activeProfile.isKids
+    ? newReleases?.filter((c) => ['G', 'PG', 'U', 'U/A 7+'].includes(c.rating))
+    : newReleases;
 
   return (
     <div className="min-h-screen bg-n-bg animate-fade-in">
@@ -67,28 +92,46 @@ export function Home() {
         />
       )}
 
+      {/* Because You Watched rows */}
+      {isAuthenticated && becauseYouWatched && becauseYouWatched.map((row) => (
+        <ContentRow
+          key={row.seedId}
+          title={`Because you watched ${row.seedTitle}`}
+          items={row.items}
+          isLoading={becauseLoading}
+        />
+      ))}
+
+      {/* T1-5: Top 10 row with rank numbers */}
       <ContentRow
-        title="Trending Now"
-        items={trending}
+        title="Top 10 Today"
+        items={top10}
         isLoading={trendingLoading}
         showRank
       />
 
       <ContentRow
         title="V19+ Originals"
-        items={originals}
+        items={filteredOriginals}
         isLoading={originalsLoading}
+      />
+
+      {/* T1-4: New Releases row */}
+      <ContentRow
+        title="New on V19+"
+        items={filteredNewReleases}
+        isLoading={newReleasesLoading}
       />
 
       {isAuthenticated && (
         <ContentRow
           title="Recommended For You"
-          items={recommended}
+          items={filteredRecommended}
           isLoading={recommendedLoading}
         />
       )}
 
-      {topRated && topRated.length > 0 && (
+      {!activeProfile.isKids && topRated && topRated.length > 0 && (
         <ContentRow
           title="Award Winners"
           items={topRated}

@@ -26,6 +26,14 @@ export function useOriginals() {
   });
 }
 
+export function useNewReleases() {
+  return useQuery({
+    queryKey: ['new-releases'],
+    queryFn: async () => (await contentApi.newReleases()).data,
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
 export function useContent(slug: string) {
   return useQuery({
     queryKey: ['content', slug],
@@ -58,5 +66,34 @@ export function useBrowse(type?: string, genre?: string) {
   return useQuery({
     queryKey: ['browse', type, genre],
     queryFn: async () => (await contentApi.list({ type, genre, limit: 40 })).data,
+  });
+}
+
+export function useBecauseYouWatched() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: ['because-you-watched'],
+    queryFn: async () => (await contentApi.becauseYouWatched()).data,
+    enabled: isAuthenticated,
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useSimilar(contentId: string) {
+  return useQuery({
+    queryKey: ['similar', contentId],
+    queryFn: async () => (await contentApi.similar(contentId)).data,
+    enabled: !!contentId,
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useMatchScores(contentIds: string[]) {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  return useQuery({
+    queryKey: ['match-scores', contentIds],
+    queryFn: async () => (await contentApi.matchScores(contentIds)).data,
+    enabled: isAuthenticated && contentIds.length > 0,
+    staleTime: 10 * 60 * 1000,
   });
 }

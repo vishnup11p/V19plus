@@ -27,6 +27,11 @@ export async function originals(_req: AuthRequest, res: Response) {
   res.json(items);
 }
 
+export async function newReleases(_req: AuthRequest, res: Response) {
+  const items = await contentService.getNewReleases();
+  res.json(items);
+}
+
 export async function continueWatching(req: AuthRequest, res: Response) {
   const items = await contentService.getContinueWatching(req.user!.userId);
   res.json(items);
@@ -35,6 +40,22 @@ export async function continueWatching(req: AuthRequest, res: Response) {
 export async function recommended(req: AuthRequest, res: Response) {
   const items = await contentService.getRecommended(req.user!.userId);
   res.json(items);
+}
+
+export async function becauseYouWatched(req: AuthRequest, res: Response) {
+  const rows = await contentService.getBecauseYouWatched(req.user!.userId);
+  res.json(rows);
+}
+
+export async function similar(req: AuthRequest, res: Response) {
+  const items = await contentService.getSimilar(req.params.id);
+  res.json(items);
+}
+
+export async function matchScores(req: AuthRequest, res: Response) {
+  const ids = (req.query.ids as string || '').split(',').filter(Boolean);
+  const scores = await contentService.getMatchScores(req.user!.userId, ids);
+  res.json(scores);
 }
 
 export async function getBySlug(req: AuthRequest, res: Response) {

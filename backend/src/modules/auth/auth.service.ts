@@ -1,6 +1,6 @@
 import prisma from '../../config/db';
-import { generateAccessToken, generateRefreshToken } from '../../utils/jwt';
-import { verifyRefreshToken } from '../../utils/jwt';
+import bcrypt from 'bcryptjs';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../utils/jwt';
 import { AppError } from '../../middleware/errorHandler';
 import { getGoogleClient, getGoogleClientId, getGoogleAuthUrl } from '../../config/google';
 import { logger } from '../../utils/logger';
@@ -200,4 +200,32 @@ export async function getMe(userId: string) {
   });
   if (!user) throw new AppError('User not found', 404);
   return user;
+}
+
+// T2-5: Email/password register
+export async function register(email: string, password: string, name: string) {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw new AppError('An account with this email already exists', 409);
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user = await prisma.user.create({
+    data: { email, name, passwordHash, isVerified: false },
+  });
+
+  logger.info(`[auth] New user registered: ${email}`);
+  return issueTokens(user);
+}
+
+// T2-5: Email/password login
+export async function emailLogin(email: string, password: string) {
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user || !user.passwordHash) {
+    throw new AppError('Invalid email or password', 401);
+  }
+
+  const valid = await bcrypt.compare(password, user.passwordHash);
+  if (!valid) throw new AppError('Invalid email or password', 401);
+
+  logger.info(`[auth] Email login: ${email}`);
+  return issueTokens(user);
 }

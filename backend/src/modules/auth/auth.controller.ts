@@ -73,3 +73,17 @@ export async function getMe(req: AuthRequest, res: Response) {
   const user = await authService.getMe(req.user!.userId);
   res.json(user);
 }
+
+export async function register(req: Request, res: Response) {
+  const { email, password, name } = req.body;
+  const result = await authService.register(email, password, name);
+  res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
+  res.status(201).json({ user: result.user, accessToken: result.accessToken });
+}
+
+export async function login(req: Request, res: Response) {
+  const { email, password } = req.body;
+  const result = await authService.emailLogin(email, password);
+  res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
+  res.json({ user: result.user, accessToken: result.accessToken });
+}

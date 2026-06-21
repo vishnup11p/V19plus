@@ -26,3 +26,30 @@ export async function deleteProfile(req: AuthRequest, res: Response) {
   const result = await userService.deleteProfile(req.user!.userId, req.params.id);
   res.json(result);
 }
+
+// T1-6: Payment history
+export async function getPayments(req: AuthRequest, res: Response) {
+  const payments = await userService.getPayments(req.user!.userId);
+  res.json(payments);
+}
+
+// T1-7: Notifications
+export async function getNotifications(req: AuthRequest, res: Response) {
+  const notifications = await userService.getNotifications(req.user!.userId);
+  res.json(notifications);
+}
+
+export async function markNotificationRead(req: AuthRequest, res: Response) {
+  const result = await userService.markNotificationRead(req.user!.userId, req.params.id);
+  res.json(result);
+}
+
+export async function markAllNotificationsRead(req: AuthRequest, res: Response) {
+  const result = await userService.markAllNotificationsRead(req.user!.userId);
+  res.json(result);
+}
+
+export async function getUnreadNotificationCount(req: AuthRequest, res: Response) {
+  const result = await userService.getUnreadNotificationCount(req.user!.userId);
+  res.json(result);
+}

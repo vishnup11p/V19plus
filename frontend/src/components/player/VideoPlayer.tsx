@@ -21,6 +21,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   const hasSeeked = useRef(false);
   const [duration, setDuration] = useState(0);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
+  const [showSkipIntro, setShowSkipIntro] = useState(false);
 
   const {
     isPlaying, progress, volume, isMuted, showControls, subtitles, playbackSpeed,
@@ -142,7 +143,14 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         width="100%"
         height="100%"
         config={{ file: { attributes: { crossOrigin: 'anonymous' } } }}
-        onProgress={({ playedSeconds }) => updateProgress(playedSeconds)}
+        onProgress={({ playedSeconds }) => {
+          updateProgress(playedSeconds);
+          // T1-9: Skip intro detection
+          if (episode?.introStart !== undefined && episode?.introEnd !== undefined) {
+            const inIntro = playedSeconds >= episode.introStart && playedSeconds < episode.introEnd;
+            setShowSkipIntro(inIntro);
+          }
+        }}
         onDuration={(d) => setDuration(d)}
         onEnded={handleEnded}
         onPause={saveProgressNow}
@@ -150,6 +158,25 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       />
 
       <SubtitleOverlay visible={subtitles} text="[Subtitles would appear here in production]" />
+
+      {/* T1-9: Skip Intro button */}
+      {showSkipIntro && episode?.introEnd && (
+        <div className="absolute bottom-28 right-6 z-20">
+          <button
+            onClick={() => {
+              seek(episode.introEnd!);
+              playerRef.current?.seekTo(episode.introEnd!);
+              setShowSkipIntro(false);
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-black/70 backdrop-blur-sm border-2 border-white text-white font-bold text-sm rounded hover:bg-white hover:text-black transition-all duration-200"
+          >
+            Skip Intro
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {showNextOverlay && onNextEpisode && (
         <NextEpisodeOverlay

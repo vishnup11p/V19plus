@@ -10,9 +10,13 @@ router.get('/', validateQuery(listContentSchema), controller.list);
 router.get('/featured', controller.featured);
 router.get('/trending', controller.trending);
 router.get('/originals', controller.originals);
+router.get('/new-releases', controller.newReleases);
 router.get('/continue-watching', authenticate, controller.continueWatching);
 router.get('/recommended', authenticate, controller.recommended);
+router.get('/because-you-watched', authenticate, controller.becauseYouWatched);
+router.get('/match-scores', authenticate, controller.matchScores);
 router.get('/id/:id/episodes', controller.getEpisodes);
+router.get('/id/:id/similar', controller.similar);
 router.get('/:slug', optionalAuth, controller.getBySlug);
 
 router.post('/', authenticate, requireAdmin, validate(createContentSchema), controller.create);

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
@@ -24,8 +24,14 @@ const FEATURES = [
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { fetchMe } = useAuthStore();
+  const { fetchMe, login, register } = useAuthStore();
   const handledRef = useRef(false);
+
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (handledRef.current) return;
@@ -59,6 +65,31 @@ export function Login() {
         });
     }
   }, [searchParams, setSearchParams, fetchMe, navigate]);
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password || (isSignUp && !name)) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      if (isSignUp) {
+        await register(email, password, name);
+        toast.success('Successfully registered and logged in! 🎉');
+      } else {
+        await login(email, password);
+        toast.success('Welcome back! 🎉');
+      }
+      const returnUrl = (history.state as { usr?: { returnUrl?: string } })?.usr?.returnUrl || '/';
+      navigate(returnUrl, { replace: true });
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Authentication failed';
+      toast.error(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex bg-v-black overflow-hidden">
@@ -181,25 +212,88 @@ export function Login() {
           {/* Card */}
           <div className="bg-v-surface border border-v-divider/60 rounded-3xl p-8 shadow-2xl shadow-black/60 backdrop-blur-sm">
             {/* Header */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-v-text">Welcome back 👋</h2>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-v-text">
+                {isSignUp ? 'Create your account 🚀' : 'Welcome back 👋'}
+              </h2>
               <p className="text-v-muted mt-1.5 text-sm leading-relaxed">
-                Sign in to pick up where you left off. New here? An account is created automatically on your first sign-in.
+                {isSignUp
+                  ? 'Sign up to start streaming unlimited movies and TV shows.'
+                  : 'Sign in to pick up where you left off.'}
               </p>
-            </div>
-
-            {/* Divider with label */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-px flex-1 bg-v-divider" />
-              <span className="text-xs text-v-muted/70 font-medium">Continue with</span>
-              <div className="h-px flex-1 bg-v-divider" />
             </div>
 
             {/* Google sign-in */}
             <GoogleSignInButton />
 
+            {/* Divider with label */}
+            <div className="flex items-center gap-3 my-5">
+              <div className="h-px flex-1 bg-v-divider" />
+              <span className="text-xs text-v-muted/70 font-medium">or continue with</span>
+              <div className="h-px flex-1 bg-v-divider" />
+            </div>
+
+            {/* Email form */}
+            <form onSubmit={handleEmailAuth} className="space-y-4">
+              {isSignUp && (
+                <div>
+                  <label className="block text-xs font-semibold text-v-text uppercase tracking-wider mb-2">Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter your name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-v-black/50 border border-v-divider focus:border-v-orange rounded-xl px-4 py-3 text-v-text placeholder-v-muted/50 focus:outline-none transition-colors"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-semibold text-v-text uppercase tracking-wider mb-2">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-v-black/50 border border-v-divider focus:border-v-orange rounded-xl px-4 py-3 text-v-text placeholder-v-muted/50 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-v-text uppercase tracking-wider mb-2">Password</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-v-black/50 border border-v-divider focus:border-v-orange rounded-xl px-4 py-3 text-v-text placeholder-v-muted/50 focus:outline-none transition-colors"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full mt-2 bg-v-orange hover:bg-v-orange/90 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-v-orange/10 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
+              </button>
+            </form>
+
+            {/* Toggle Sign In / Sign Up */}
+            <p className="mt-6 text-center text-sm text-v-muted">
+              {isSignUp ? 'Already have an account?' : 'New to V19+?'}{' '}
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-v-orange hover:text-v-orange/80 transition-colors font-semibold"
+              >
+                {isSignUp ? 'Sign in now' : 'Sign up now'}
+              </button>
+            </p>
+
             {/* Footer links */}
-            <div className="mt-8 space-y-4">
+            <div className="mt-6 space-y-4">
               <div className="flex items-center gap-3">
                 <div className="h-px flex-1 bg-v-divider/50" />
               </div>

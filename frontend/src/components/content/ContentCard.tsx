@@ -6,6 +6,7 @@ import { ProgressBar } from '../ui/ProgressBar';
 import { useWatchlist } from '../../hooks/useWatchlist';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
+import { useMatchScores } from '../../hooks/useContent';
 import toast from 'react-hot-toast';
 
 interface ContentCardProps {
@@ -24,6 +25,9 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
   const openDetail = useUiStore((s: any) => s.openDetail);
   const navigate = useNavigate();
   const hoverTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const { data: scores } = useMatchScores(isAuthenticated ? [content.id] : []);
+  const matchScore = scores?.[content.id];
 
   const widths = { sm: 'w-28 md:w-36', md: 'w-36 md:w-44', lg: 'w-44 md:w-56' };
 
@@ -200,9 +204,11 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
 
               {/* Meta */}
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                {content.imdbScore && (
+                {matchScore ? (
+                  <span className="text-emerald-400 font-bold">{matchScore}% Match</span>
+                ) : content.imdbScore ? (
                   <span className="text-emerald-400 font-bold">{content.imdbScore} IMDb</span>
-                )}
+                ) : null}
                 {content.releaseYear && <span className="text-n-muted">{content.releaseYear}</span>}
                 {content.rating && (
                   <span className="border border-n-muted/50 px-1 rounded text-2xs text-n-muted">

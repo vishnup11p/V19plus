@@ -26,4 +26,13 @@ router.get('/profiles', controller.listProfiles);
 router.post('/profiles', validate(createProfileSchema), controller.createProfile);
 router.delete('/profiles/:id', controller.deleteProfile);
 
+// T1-6: Payment history
+router.get('/payments', controller.getPayments);
+
+// T1-7: Notifications
+router.get('/notifications', controller.getNotifications);
+router.get('/notifications/unread-count', controller.getUnreadNotificationCount);
+router.patch('/notifications/:id/read', controller.markNotificationRead);
+router.post('/notifications/read-all', controller.markAllNotificationsRead);
+
 export default router;

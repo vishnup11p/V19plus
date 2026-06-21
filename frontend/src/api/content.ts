@@ -31,6 +31,8 @@ export interface Content {
       duration: number;
       thumbnailUrl?: string;
       videoUrl: string;
+      introStart?: number;
+      introEnd?: number;
     }[];
   }[];
   watchProgress?: { progress: number; completed: boolean; episodeId?: string };
@@ -50,7 +52,11 @@ export const contentApi = {
   featured: () => api.get<Content[]>('/content/featured'),
   trending: () => api.get<Content[]>('/content/trending'),
   originals: () => api.get<Content[]>('/content/originals'),
+  newReleases: () => api.get<Content[]>('/content/new-releases'),
   continueWatching: () => api.get<WatchHistoryItem[]>('/content/continue-watching'),
   recommended: () => api.get<Content[]>('/content/recommended'),
+  becauseYouWatched: () => api.get<{ seedTitle: string; seedId: string; items: Content[] }[]>('/content/because-you-watched'),
+  similar: (id: string) => api.get<Content[]>(`/content/id/${id}/similar`),
+  matchScores: (ids: string[]) => api.get<Record<string, number>>('/content/match-scores', { params: { ids: ids.join(',') } }),
   getBySlug: (slug: string) => api.get<Content>(`/content/${slug}`),
 };

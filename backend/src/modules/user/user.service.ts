@@ -41,3 +41,37 @@ export async function deleteProfile(userId: string, profileId: string) {
   await prisma.profile.delete({ where: { id: profileId } });
   return { message: 'Profile deleted' };
 }
+
+// T1-6: Payment history
+export async function getPayments(userId: string) {
+  return prisma.payment.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+  });
+}
+
+// T1-7: Notifications
+export async function getNotifications(userId: string) {
+  return prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 30,
+  });
+}
+
+export async function markNotificationRead(userId: string, notificationId: string) {
+  const notif = await prisma.notification.findFirst({ where: { id: notificationId, userId } });
+  if (!notif) throw new AppError('Notification not found', 404);
+  return prisma.notification.update({ where: { id: notificationId }, data: { isRead: true } });
+}
+
+export async function markAllNotificationsRead(userId: string) {
+  await prisma.notification.updateMany({ where: { userId, isRead: false }, data: { isRead: true } });
+  return { message: 'All notifications marked as read' };
+}
+
+export async function getUnreadNotificationCount(userId: string) {
+  const count = await prisma.notification.count({ where: { userId, isRead: false } });
+  return { count };
+}

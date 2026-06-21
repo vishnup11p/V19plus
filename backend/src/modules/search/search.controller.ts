@@ -3,12 +3,31 @@ import prisma from '../../config/db';
 import { cacheGet, cacheSet } from '../../config/redis';
 import { asStringArray, contentMatchesTag, serializeContent } from '../../utils/jsonArray';
 
+// T2-7: In-memory trending query map (resets on server restart; use Redis for production)
+const trendingQueries = new Map<string, number>();
+const MAX_TRENDING = 10;
+
+function trackQuery(q: string) {
+  const key = q.toLowerCase().trim();
+  if (key.length < 2) return;
+  trendingQueries.set(key, (trendingQueries.get(key) || 0) + 1);
+  // Prune if overgrown
+  if (trendingQueries.size > 500) {
+    const sorted = [...trendingQueries.entries()].sort((a, b) => b[1] - a[1]);
+    trendingQueries.clear();
+    sorted.slice(0, 200).forEach(([k, v]) => trendingQueries.set(k, v));
+  }
+}
+
 export async function search(req: Request, res: Response) {
   const q = (req.query.q as string || '').trim();
   if (!q || q.length < 2) {
     res.json({ results: [], query: q });
     return;
   }
+
+  // Track for trending
+  trackQuery(q);
 
   const ql = q.toLowerCase();
   const candidates = await prisma.content.findMany({
@@ -75,4 +94,47 @@ export async function suggestions(req: Request, res: Response) {
 
   await cacheSet(cacheKey, suggestions, 300);
   res.json(suggestions);
+}
+
+// T2-7: Trending searches
+export async function trendingSearches(_req: Request, res: Response) {
+  const sorted = [...trendingQueries.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, MAX_TRENDING)
+    .map(([q]) => q);
+  res.json(sorted);
+}
+
+// T2-8: Person / actor filmography page
+export async function personSearch(req: Request, res: Response) {
+  const name = decodeURIComponent(req.params.name || '').trim();
+  if (!name) { res.json({ person: null, items: [] }); return; }
+
+  const castMembers = await prisma.castMember.findMany({
+    where: { name: { contains: name } },
+    include: {
+      content: {
+        include: { cast: { take: 3 } },
+      },
+    },
+    take: 50,
+  });
+
+  if (castMembers.length === 0) { res.json({ person: null, items: [] }); return; }
+
+  // Canonical person info from first match
+  const person = {
+    name: castMembers[0].name,
+    photoUrl: castMembers[0].photoUrl,
+    roles: [...new Set(castMembers.map((m) => m.role))],
+  };
+
+  // Deduplicate content
+  const seen = new Set<string>();
+  const items = castMembers
+    .map((m) => m.content)
+    .filter((c) => { if (seen.has(c.id)) return false; seen.add(c.id); return c.isPublished; })
+    .map(serializeContent);
+
+  res.json({ person, items });
 }

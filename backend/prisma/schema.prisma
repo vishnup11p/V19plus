@@ -112,6 +112,8 @@ model Episode {
   duration     Int
   thumbnailUrl String?
   videoUrl     String
+  introStart   Int?           // seconds where intro begins
+  introEnd     Int?           // seconds where intro ends
   createdAt    DateTime       @default(now())
   watchHistory WatchHistory[]
 

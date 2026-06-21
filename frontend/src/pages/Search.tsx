@@ -20,12 +20,22 @@ export function Search() {
   const [loading, setLoading] = useState(false);
   const [typeFilter, setTypeFilter] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [trending, setTrending] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Auto focus on mount
+  // Auto focus on mount and fetch trending
   useEffect(() => {
     inputRef.current?.focus();
+    const fetchTrending = async () => {
+      try {
+        const { data } = await searchApi.trending();
+        setTrending(data);
+      } catch {
+        // ignore
+      }
+    };
+    fetchTrending();
   }, []);
 
   // Run initial search if query param exists
@@ -186,10 +196,30 @@ export function Search() {
             <p className="text-n-muted">Try different keywords or browse our library</p>
           </div>
         ) : !query ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="text-6xl mb-4">🎬</div>
             <p className="text-xl font-bold text-n-white mb-2">Find your next watch</p>
-            <p className="text-n-muted">Search for movies, shows, and documentaries</p>
+            <p className="text-n-muted mb-8">Search for movies, shows, and documentaries</p>
+
+            {trending.length > 0 && (
+              <div className="max-w-md">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-n-muted mb-3">Trending Searches</h3>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {trending.map((term) => (
+                    <button
+                      key={term}
+                      onClick={() => {
+                        setQuery(term);
+                        performSearch(term);
+                      }}
+                      className="px-4 py-2 rounded-full bg-n-surface border border-n-divider hover:border-n-white text-sm text-n-text transition-colors"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
       </div>

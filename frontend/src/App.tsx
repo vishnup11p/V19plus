@@ -17,6 +17,7 @@ import { Subscription } from './pages/Subscription';
 import { Login } from './pages/Login';
 import { AdminLogin } from './pages/admin/AdminLogin';
 import { TitleDetail } from './pages/TitleDetail';
+import { PersonDetail } from './pages/PersonDetail';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { AdminSettings } from './pages/admin/AdminSettings';
 import { AdminCategories } from './pages/admin/AdminCategories';
@@ -49,6 +50,7 @@ export default function App() {
           <Route path="/verify-email" element={<Navigate to="/login" replace />} />
           <Route path="/reset-password" element={<Navigate to="/login" replace />} />
           <Route path="/title/:slug" element={<TitleDetail />} />
+          <Route path="/person/:name" element={<PersonDetail />} />
           <Route path="/watch/:slug" element={<ProtectedRoute><Watch /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute requireSubscription={false}><Profile /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute requireSubscription={false}><Settings /></ProtectedRoute>} />
