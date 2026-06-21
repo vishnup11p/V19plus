@@ -5,7 +5,7 @@ import { PlayerControls } from './PlayerControls';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { NextEpisodeOverlay } from './NextEpisodeOverlay';
 import { Content } from '../../api/content';
-import { getPlaybackPrefs } from '../../pages/Settings';
+import { getPlaybackPrefs } from '../../views/Settings';
 
 interface VideoPlayerProps {
   content: Content;

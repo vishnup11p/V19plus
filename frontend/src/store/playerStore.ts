@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { Content } from '../api/content';
 import { historyApi } from '../api/history';
-import { getPlaybackPrefs } from '../pages/Settings';
+import { getPlaybackPrefs } from '../views/Settings';
 // Re-export is fine since Settings exports getPlaybackPrefs
 
 interface Episode {

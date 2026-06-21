@@ -8,7 +8,7 @@ import { authApi } from '../../api/auth';
 import { normalizeGoogleClientId, isValidGoogleClientIdFormat } from '../../utils/googleClientId';
 import toast from 'react-hot-toast';
 
-const rawClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+const rawClientId = (typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID : '') || '';
 const clientId = normalizeGoogleClientId(rawClientId);
 
 export function GoogleSignInButton() {
@@ -25,7 +25,7 @@ export function GoogleSignInButton() {
   });
 
   if (!clientId) {
-    return <GoogleSetupHelp reason="VITE_GOOGLE_CLIENT_ID is missing in frontend/.env" />;
+    return <GoogleSetupHelp reason="NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing in frontend/.env" />;
   }
 
   if (!isValidGoogleClientIdFormat(clientId)) {

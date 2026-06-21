@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: (typeof window !== 'undefined' ? (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_API_URL : '') || process.env.NEXT_PUBLIC_API_URL || '/api',
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 });
@@ -40,6 +40,7 @@ const isAuthEndpoint = (url?: string) =>
   );
 
 const shouldSkipLoginRedirect = () => {
+  if (typeof window === 'undefined') return true;
   const path = window.location.pathname;
   return (
     path.startsWith('/login') ||
@@ -71,7 +72,7 @@ api.interceptors.response.use(
 
       try {
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_URL || '/api'}/auth/refresh`,
+          ((typeof window !== 'undefined' ? (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_API_URL : '') || process.env.NEXT_PUBLIC_API_URL || '/api') + '/auth/refresh',
           {},
           { withCredentials: true }
         );
@@ -82,7 +83,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().logout();
-        if (!shouldSkipLoginRedirect()) {
+        if (typeof window !== 'undefined' && !shouldSkipLoginRedirect()) {
           window.location.href = '/login';
         }
         return Promise.reject(refreshError);

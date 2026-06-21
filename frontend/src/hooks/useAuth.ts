@@ -19,8 +19,8 @@ export function useAuthInit() {
       return;
     }
 
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
-    socket = io(socketUrl, {
+    const socketUrl = (typeof window !== 'undefined' ? process.env.NEXT_PUBLIC_SOCKET_URL : '') || '';
+    socket = io(socketUrl || (typeof window !== 'undefined' ? window.location.origin : ''), {
       auth: { token: accessToken },
     });
 
