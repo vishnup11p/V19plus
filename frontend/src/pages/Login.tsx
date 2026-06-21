@@ -46,15 +46,16 @@ export function Login() {
     if (google === 'success') {
       handledRef.current = true;
       fetchMe()
-        .then(() => {
-          toast.success('Welcome back! 🎉');
-          const returnUrl =
-            (history.state as { usr?: { returnUrl?: string } })?.usr?.returnUrl || '/';
-          navigate(returnUrl, { replace: true });
-        })
-        .catch(() => {
-          toast.error('Sign-in succeeded but session could not be restored. Try again.');
-          setSearchParams({}, { replace: true });
+        .then((success) => {
+          if (success) {
+            toast.success('Welcome back! 🎉');
+            const returnUrl =
+              (history.state as { usr?: { returnUrl?: string } })?.usr?.returnUrl || '/';
+            navigate(returnUrl, { replace: true });
+          } else {
+            toast.error('Sign-in succeeded but session could not be restored. Try again.');
+            setSearchParams({}, { replace: true });
+          }
         });
     }
   }, [searchParams, setSearchParams, fetchMe, navigate]);

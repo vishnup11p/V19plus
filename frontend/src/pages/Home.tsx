@@ -15,9 +15,17 @@ export function Home() {
   const { data: originals, isLoading: originalsLoading } = useOriginals();
   const { data: continueWatching, isLoading: continueLoading } = useContinueWatching();
   const { data: recommended, isLoading: recommendedLoading } = useRecommended();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { isAuthenticated, isLoading } = useAuthStore();
   const activeGenre = useUiStore((s) => s.activeGenre);
   const { data: genreContent, isLoading: genreLoading } = useBrowse(undefined, activeGenre || undefined);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-n-black flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-4 border-n-divider border-t-n-red animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Landing />;

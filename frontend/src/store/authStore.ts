@@ -10,7 +10,7 @@ interface AuthState {
   adminLogin: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
-  fetchMe: () => Promise<void>;
+  fetchMe: () => Promise<boolean>;
   setAccessToken: (token: string) => void;
   hasActiveSubscription: () => boolean;
   isAdmin: () => boolean;
@@ -62,8 +62,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ accessToken: refreshData.accessToken });
       const { data } = await authApi.me();
       set({ user: data, isAuthenticated: true, isLoading: false });
+      return true;
     } catch {
       set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
+      return false;
     }
   },
 }));
