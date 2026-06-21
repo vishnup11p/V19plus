@@ -29,6 +29,8 @@ const processQueue = (error: unknown, token: string | null = null) => {
 const isAuthEndpoint = (url?: string) =>
   !!url && (
     url.includes('/auth/refresh') ||
+    url.includes('/auth/login') ||
+    url.includes('/auth/register') ||
     url.includes('/auth/google') ||
     url.includes('/auth/logout') ||
     url.includes('/admin/auth/login') ||
