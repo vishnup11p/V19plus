@@ -16,6 +16,8 @@ interface AuthState {
   isAdmin: () => boolean;
 }
 
+let activeFetchMePromise: Promise<boolean> | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   accessToken: null,
@@ -56,16 +58,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   fetchMe: async () => {
-    set({ isLoading: true });
-    try {
-      const { data: refreshData } = await authApi.refresh();
-      set({ accessToken: refreshData.accessToken });
-      const { data } = await authApi.me();
-      set({ user: data, isAuthenticated: true, isLoading: false });
-      return true;
-    } catch {
-      set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
-      return false;
+    if (activeFetchMePromise) {
+      return activeFetchMePromise;
     }
+
+    set({ isLoading: true });
+
+    activeFetchMePromise = (async () => {
+      try {
+        const { data: refreshData } = await authApi.refresh();
+        set({ accessToken: refreshData.accessToken });
+        const { data } = await authApi.me();
+        set({ user: data, isAuthenticated: true, isLoading: false });
+        return true;
+      } catch {
+        set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
+        return false;
+      } finally {
+        activeFetchMePromise = null;
+      }
+    })();
+
+    return activeFetchMePromise;
   },
 }));
