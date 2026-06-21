@@ -92,6 +92,16 @@ export function Topbar() {
         scrolled ? 'bg-n-bg shadow-lg shadow-black/30' : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent'
       }`}
     >
+      {/* Simulated mobile status bar */}
+      <div className="flex md:hidden justify-between items-center px-6 pt-2 pb-1 text-2xs text-[#FAF6EF]/80 font-bold tracking-tight bg-black/30 backdrop-blur-sm select-none">
+        <span>9:41</span>
+        <div className="flex items-center gap-1.5">
+          <span>••••</span>
+          <span>📶</span>
+          <span>🔋</span>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between px-4 md:px-12 h-16 md:h-[68px]">
         {/* Logo + Nav */}
         <div className="flex items-center gap-8">

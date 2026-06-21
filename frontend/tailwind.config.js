@@ -1,7 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/views/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
@@ -16,6 +16,17 @@ module.exports = {
         'v-orange': '#FF5C00',
         'v-orange-deep': '#D44900',
         'v-orange-glow': 'rgba(255, 92, 0, 0.3)',
+        // Map legacy themes to orange/black design tokens
+        'n-bg': '#0A0806',
+        'n-raised': '#14110D',
+        'n-surface': '#181410',
+        'n-divider': 'rgba(255, 255, 255, 0.08)',
+        'n-text': '#FAF6EF',
+        'n-muted': '#8C8478',
+        'n-red': '#FF5C00',
+        'n-red-hover': '#D44900',
+        'n-white': '#FAF6EF',
+        'n-black': '#0A0806',
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

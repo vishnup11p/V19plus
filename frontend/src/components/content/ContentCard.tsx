@@ -113,8 +113,20 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-n-raised">
-              <span className="text-4xl">🎬</span>
+            <div className={`w-full h-full flex flex-col justify-end p-4 border border-white/5 ${
+              (() => {
+                const t = content.title.toLowerCase();
+                if (t.includes('glass') || t.includes('city')) return 'bg-gradient-to-b from-[#0f766e] via-[#042f2e] to-[#0A0806]';
+                if (t.includes('red') || t.includes('tide')) return 'bg-gradient-to-b from-[#991b1b] via-[#450a0a] to-[#0A0806]';
+                if (t.includes('deep') || t.includes('static')) return 'bg-gradient-to-b from-[#3730a3] via-[#1e1b4b] to-[#0A0806]';
+                if (t.includes('solstice')) return 'bg-gradient-to-b from-[#854d0e] via-[#422006] to-[#0A0806]';
+                if (t.includes('horizon')) return 'bg-gradient-to-b from-[#b45309] via-[#78350f] to-[#0A0806]';
+                return 'bg-gradient-to-b from-[#181410] to-[#0A0806]';
+              })()
+            }`}>
+              <h4 className="font-extrabold text-sm text-[#FAF6EF] leading-tight group-hover:text-[#FF5C00] transition-colors">
+                {content.title}
+              </h4>
             </div>
           )}
 

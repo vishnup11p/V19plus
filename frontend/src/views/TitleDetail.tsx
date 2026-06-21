@@ -64,225 +64,178 @@ export function TitleDetail() {
 
   const currentSeason = content.seasons?.[activeSeason];
 
+  // Helper to get gradients for placeholder cards
+  const getGradientClass = (title: string) => {
+    const t = title.toLowerCase();
+    if (t.includes('glass') || t.includes('city')) return 'bg-gradient-to-b from-[#0f766e] via-[#042f2e] to-[#0A0806]';
+    if (t.includes('red') || t.includes('tide')) return 'bg-gradient-to-b from-[#991b1b] via-[#450a0a] to-[#0A0806]';
+    if (t.includes('deep') || t.includes('static')) return 'bg-gradient-to-b from-[#3730a3] via-[#1e1b4b] to-[#0A0806]';
+    return 'bg-gradient-to-b from-[#b45309] via-[#78350f] to-[#0A0806]'; // default orange-brown
+  };
+
+  const getCastGradient = (name: string) => {
+    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const colors = [
+      'from-[#b45309] to-[#78350f]', // Gold/Brown
+      'from-[#0f766e] to-[#042f2e]', // Teal
+      'from-[#6b21a8] to-[#4c1d95]', // Purple
+      'from-[#991b1b] to-[#450a0a]', // Red
+    ];
+    return colors[hash % colors.length];
+  };
+
   return (
-    <div className="min-h-screen bg-n-bg animate-fade-in">
+    <div className="min-h-screen bg-n-bg animate-fade-in relative pb-16">
+      {/* Back button */}
+      <button 
+        onClick={() => navigate(-1)}
+        className="absolute top-6 left-6 w-10 h-10 rounded-full bg-black/60 border border-white/10 flex items-center justify-center text-white hover:bg-black/80 transition-all z-30"
+        aria-label="Back"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+      </button>
+
       {/* Backdrop hero */}
-      <div className="relative h-[55vh] md:h-[65vh] overflow-hidden">
+      <div className="relative h-[60vh] md:h-[70vh] overflow-hidden">
         <img
           src={content.backdropUrl}
           alt=""
-          className="w-full h-full object-cover object-top"
+          className="w-full h-full object-cover object-top opacity-80"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-n-bg via-n-bg/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-n-bg via-transparent to-n-bg/20" />
+        {/* Glow overlay representing central spotlight */}
+        <div className="absolute inset-0 bg-gradient-to-t from-n-bg via-n-bg/30 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-n-bg/40 to-n-bg" />
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(circle at center, rgba(255,92,0,0.15) 0%, transparent 60%)'
+          }}
+        />
+
+        {/* Central orange play button */}
+        <Link
+          to={`/watch/${content.slug}`}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full bg-gradient-to-br from-[#FF5C00] to-[#D44900] text-white flex items-center justify-center shadow-[0_0_30px_rgba(255,92,0,0.4)] hover:scale-105 transition-transform duration-300 z-20 group"
+        >
+          <svg className="w-8 h-8 fill-current translate-x-0.5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </Link>
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 -mt-48 md:-mt-64 px-4 md:px-12 pb-16">
-        <div className="max-w-5xl">
-          {/* Badges */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-wrap gap-2 mb-4"
-          >
-            {content.isOriginal && (
-              <span className="text-2xs font-black uppercase tracking-widest text-n-red">V19+ Original</span>
-            )}
-          </motion.div>
+      <div className="relative z-10 px-6 md:px-16 max-w-5xl mx-auto -mt-20 md:-mt-32">
+        {/* Title */}
+        <h1 className="text-4xl md:text-6xl font-black text-n-white leading-tight mb-4 uppercase tracking-normal" style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}>
+          {content.title}
+        </h1>
 
-          {/* Title */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-black text-n-white leading-none mb-4 text-shadow"
-          >
-            {content.title}
-          </motion.h1>
-
-          {/* Meta */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm mb-4"
-          >
-            {content.imdbScore && (
-              <span className="text-emerald-400 font-bold text-base">{content.imdbScore} IMDb</span>
-            )}
-            <span className="text-n-muted">{content.releaseYear}</span>
-            {content.rating && (
-              <span className="border border-n-muted/50 px-2 py-0.5 rounded text-xs text-n-muted">{content.rating}</span>
-            )}
-            {content.duration && (
-              <span className="text-n-muted">{Math.floor(content.duration / 60)}h {content.duration % 60}m</span>
-            )}
-            <span className="bg-n-surface border border-n-divider text-n-muted px-2 py-0.5 rounded text-xs uppercase">
-              {content.type}
-            </span>
-          </motion.div>
-
-          {/* Progress */}
-          {content.watchProgress && content.watchProgress.progress > 0 && (
-            <div className="mb-5 max-w-xs">
-              <ProgressBar progress={content.watchProgress.progress} />
-              <p className="text-xs text-n-muted mt-1">{Math.round(content.watchProgress.progress)}% watched</p>
-            </div>
+        {/* Meta / Badges */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-semibold mb-6">
+          <span className="text-[#FF5C00] font-black">98% Match</span>
+          <span className="text-n-muted">{content.releaseYear}</span>
+          {content.rating && (
+            <span className="border border-n-muted/50 px-2 py-0.5 rounded text-xs text-n-muted bg-white/5">{content.rating}</span>
           )}
+          <span className="text-n-muted">{content.seasons && content.seasons.length > 0 ? `${content.seasons.length} Seasons` : '4K HDR'}</span>
+          <span className="bg-n-surface border border-n-divider text-n-muted px-2 py-0.5 rounded text-xs uppercase">
+            {content.type}
+          </span>
+        </div>
 
-          {/* Description */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15 }}
-            className="text-n-text/80 text-base leading-relaxed mb-6 max-w-2xl"
+        {/* Action Buttons (Orange Play, Dark Download) */}
+        <div className="flex flex-wrap gap-4 mb-8">
+          <Link
+            to={`/watch/${content.slug}${currentSeason ? `?episode=${currentSeason.episodes[0]?.id}` : ''}`}
+            className="flex items-center justify-center gap-2 px-10 py-3.5 bg-[#FF5C00] hover:bg-[#FF5C00]/90 text-[#0A0806] font-extrabold rounded-xl text-base transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-[#FF5C00]/10 flex-1 md:flex-none"
           >
-            {content.description}
-          </motion.p>
+            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            Play {currentSeason ? `S1:E1` : ''}
+          </Link>
+          <button
+            onClick={() => toast.success('Download started')}
+            className="flex items-center justify-center gap-2 px-10 py-3.5 bg-[#181410] hover:bg-[#221c16] text-[#FAF6EF] font-bold rounded-xl border border-white/5 text-base transition-all flex-1 md:flex-none"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download
+          </button>
+          <button
+            onClick={handleWatchlist}
+            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-transparent hover:bg-white/5 text-white border border-white/10 rounded-xl transition-all"
+            title="Add to My List"
+          >
+            {inList ? '✓ in My List' : '+ My List'}
+          </button>
+        </div>
 
-          {/* Genre tags */}
-          {content.genre?.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              {content.genre.map((g) => (
-                <span key={g} className="text-xs px-3 py-1.5 rounded-full bg-n-surface border border-n-divider text-n-muted">
-                  {g}
-                </span>
+        {/* Description */}
+        <p className="text-[#8C8478] text-base leading-relaxed mb-10 max-w-3xl">
+          {content.description}
+        </p>
+
+        {/* Cast list */}
+        {content.cast && content.cast.length > 0 && (
+          <section className="mb-12">
+            <h2 className="text-xl font-extrabold text-n-white mb-6 uppercase tracking-wider" style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}>Cast</h2>
+            <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-2">
+              {content.cast.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex-shrink-0 text-center w-20 block"
+                >
+                  <div className={`w-16 h-16 rounded-full mx-auto mb-2 overflow-hidden bg-gradient-to-tr ${getCastGradient(member.name)} shadow-lg flex items-center justify-center text-xl font-black text-white`}>
+                    {member.photoUrl ? (
+                      <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
+                    ) : (
+                      member.name.charAt(0)
+                    )}
+                  </div>
+                  <p className="text-xs font-semibold text-n-text truncate">{member.name}</p>
+                  <p className="text-2xs text-[#8C8478] truncate">{member.role || 'Cast'}</p>
+                </div>
               ))}
             </div>
-          )}
+          </section>
+        )}
 
-          {/* Action buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-wrap gap-3 mb-10"
-          >
-            <Link
-              to={`/watch/${content.slug}`}
-              className="flex items-center gap-2 px-8 py-3.5 bg-n-white hover:bg-n-white/80 text-black font-bold rounded text-base transition-all active:scale-95"
-            >
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-              Play
-            </Link>
-            <button
-              onClick={handleWatchlist}
-              className="flex items-center gap-2 px-6 py-3.5 bg-n-muted/30 hover:bg-n-muted/50 text-white border border-white/20 backdrop-blur-sm font-semibold rounded text-base transition-all"
-            >
-              {inList
-                ? <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg> In My List</>
-                : <><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg> My List</>
-              }
-            </button>
-            {content.trailerUrl && (
-              <a
-                href={content.trailerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-2 px-6 py-3.5 bg-transparent hover:bg-n-surface text-white border border-n-divider font-semibold rounded text-base transition-all"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.362a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-                </svg>
-                Trailer
-              </a>
-            )}
-          </motion.div>
-
-          {/* Cast */}
-          {content.cast && content.cast.length > 0 && (
-            <section className="mb-10">
-              <h2 className="text-lg font-bold text-n-white mb-4">Cast</h2>
-              <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-                {content.cast.map((member) => (
-                  <Link
-                    key={member.id}
-                    to={`/person/${encodeURIComponent(member.name)}`}
-                    className="flex-shrink-0 text-center w-20 hover:scale-105 transition-transform duration-200 block"
-                  >
-                    <div className="w-16 h-16 rounded-full mx-auto mb-2 overflow-hidden bg-n-raised border-2 border-n-divider">
-                      {member.photoUrl
-                        ? <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center text-xl font-bold text-n-muted">{member.name.charAt(0)}</div>
-                      }
-                    </div>
-                    <p className="text-xs font-semibold text-n-text truncate">{member.name}</p>
-                    <p className="text-2xs text-n-muted truncate">{member.role}</p>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Episodes */}
-          {content.seasons && content.seasons.length > 0 && (
-            <section className="mb-16">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-n-white">Episodes</h2>
-                {content.seasons.length > 1 && (
-                  <div className="relative">
-                    <select
-                      value={activeSeason}
-                      onChange={(e) => setActiveSeason(Number(e.target.value))}
-                      className="pl-4 pr-8 py-2 bg-n-surface border border-n-divider rounded text-sm text-n-text cursor-pointer focus:outline-none appearance-none"
-                    >
-                      {content.seasons.map((s, i) => (
-                        <option key={s.id} value={i}>Season {s.number}</option>
-                      ))}
-                    </select>
-                    <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-n-muted pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
+        {/* More Like This (Vertical / Card grid style matching screenshot) */}
+        {similarContent && similarContent.length > 0 ? (
+          <section className="mt-12">
+            <h2 className="text-xl font-extrabold text-n-white mb-6 uppercase tracking-wider" style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}>More Like This</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {similarContent.slice(0, 10).map((item) => (
+                <Link
+                  key={item.id}
+                  to={`/title/${item.slug}`}
+                  className="block group"
+                >
+                  <div className={`aspect-[2/3] w-full rounded-2xl p-4 flex flex-col justify-end transition-all duration-300 border border-white/5 hover:border-[#FF5C00]/40 shadow-lg ${getGradientClass(item.title)}`}>
+                    <h3 className="font-extrabold text-base text-[#FAF6EF] leading-tight group-hover:text-[#FF5C00] transition-colors">{item.title}</h3>
                   </div>
-                )}
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="mt-12">
+            <h2 className="text-xl font-extrabold text-n-white mb-6 uppercase tracking-wider" style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}>More Like This</h2>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="aspect-[2/3] w-full rounded-2xl p-4 flex flex-col justify-end bg-gradient-to-b from-[#0f766e] via-[#042f2e] to-[#0A0806] border border-white/5 hover:border-[#FF5C00]/40 transition-all cursor-pointer">
+                <h3 className="font-extrabold text-base text-[#FAF6EF]">Glass City</h3>
               </div>
-
-              <div className="space-y-2">
-                {currentSeason?.episodes.map((ep) => (
-                  <Link
-                    key={ep.id}
-                    to={`/watch/${content.slug}?episode=${ep.id}`}
-                    className="flex items-start gap-4 p-4 bg-n-surface hover:bg-n-raised border border-n-divider rounded-lg transition-colors group"
-                  >
-                    {/* Episode thumbnail */}
-                    <div className="flex-shrink-0 w-32 h-18 rounded overflow-hidden bg-n-raised relative">
-                      {ep.thumbnailUrl
-                        ? <img src={ep.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center bg-n-divider"><svg className="w-8 h-8 fill-n-muted" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg></div>
-                      }
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <svg className="w-8 h-8 fill-white" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                      </div>
-                    </div>
-                    {/* Episode info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-n-muted text-sm font-medium">{ep.number}.</span>
-                        <p className="font-semibold text-n-white truncate">{ep.title}</p>
-                        <span className="text-n-muted text-xs ml-auto flex-shrink-0">{ep.duration}m</span>
-                      </div>
-                      {ep.description && (
-                        <p className="text-xs text-n-muted line-clamp-2">{ep.description}</p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
+              <div className="aspect-[2/3] w-full rounded-2xl p-4 flex flex-col justify-end bg-gradient-to-b from-[#991b1b] via-[#450a0a] to-[#0A0806] border border-white/5 hover:border-[#FF5C00]/40 transition-all cursor-pointer">
+                <h3 className="font-extrabold text-base text-[#FAF6EF]">Red Tide</h3>
               </div>
-            </section>
-          )}
-
-          {/* More Like This */}
-          {similarContent && similarContent.length > 0 && (
-            <section className="mb-16">
-              <h2 className="text-lg font-bold text-n-white mb-6">More Like This</h2>
-              <div className="flex flex-wrap gap-4">
-                {similarContent.slice(0, 12).map((item) => (
-                  <ContentCard key={item.id} content={item} size="md" />
-                ))}
+              <div className="aspect-[2/3] w-full rounded-2xl p-4 flex flex-col justify-end bg-gradient-to-b from-[#3730a3] via-[#1e1b4b] to-[#0A0806] border border-white/5 hover:border-[#FF5C00]/40 transition-all cursor-pointer">
+                <h3 className="font-extrabold text-base text-[#FAF6EF]">Deep Static</h3>
               </div>
-            </section>
-          )}
-        </div>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

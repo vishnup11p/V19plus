@@ -73,10 +73,10 @@ export function AdminLayout() {
         <div className="h-16 flex items-center border-b border-n-divider flex-shrink-0 relative group px-4">
           <Link to="/admin" className="flex items-center min-w-0 overflow-hidden">
             <img 
-              src="/logo.png" 
+              src={sidebarOpen ? "/logo.png" : "/logo-icon.png"} 
               alt="Admin" 
               className="h-7 object-contain max-w-none transition-all duration-200" 
-              style={{ width: sidebarOpen ? '135px' : '28px', objectPosition: 'left center' }} 
+              style={{ width: sidebarOpen ? '135px' : '28px' }} 
             />
           </Link>
           {sidebarOpen && (

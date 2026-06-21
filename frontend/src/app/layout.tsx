@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "V19+ | Stream Unlimited Movies & Shows",
   description: "V19 Plus is a premium streaming platform featuring unlimited movies, series, originals, and documentaries with high-end Dolby surround sound and offline downloads.",
   icons: {
-    icon: "/logo.png",
+    icon: "/logo-icon.png",
   },
 };
 

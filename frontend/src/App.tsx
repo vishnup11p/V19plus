@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Topbar } from './components/layout/Topbar';
+import { BottomNav } from './components/layout/BottomNav';
 import { Footer } from './components/layout/Footer';
 import { DetailModal } from './components/content/DetailModal';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
@@ -71,6 +72,7 @@ export default function App() {
         </Routes>
       </main>
       {showMainChrome && <Footer />}
+      {showMainChrome && <BottomNav />}
       {!isAdminPage && <DetailModal />}
     </div>
   );
