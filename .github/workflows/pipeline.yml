@@ -8,9 +8,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ----------------------------------------------------
-  # 1. CI Validation Job: Ensures everything compiles and tests pass
-  # ----------------------------------------------------
   validate:
     name: Validate Codebase (CI)
     runs-on: ubuntu-latest
@@ -28,19 +25,21 @@ jobs:
       - name: Install Monorepo Dependencies
         run: npm ci
 
-      - name: Build Packages First
+      - name: Build Shared Packages
         run: |
           echo "Building shared packages..."
-          npm run build --workspace=packages/types
-          npm run build --workspace=packages/utils
-          npm run build --workspace=packages/config
-          npm run build --workspace=packages/ui
+          npm run build --workspace=packages/types --if-present
+          npm run build --workspace=packages/utils --if-present
+          npm run build --workspace=packages/ui --if-present
 
       - name: Generate Prisma Client
         run: npx prisma generate --schema=apps/backend/prisma/schema.prisma
 
-      - name: Build Monorepo (Apps)
-        run: npm run build --workspace=apps --if-present
+      - name: Build Apps Individually
+        run: |
+          npm run build --workspace=apps/web --if-present
+          npm run build --workspace=apps/admin --if-present
+          npm run build --workspace=apps/backend --if-present
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
@@ -56,9 +55,6 @@ jobs:
             echo "No test script found in apps/backend, skipping tests."
           fi
 
-  # ----------------------------------------------------
-  # 2. CD Deployment Job: Deploys the Web Client, Admin CMS, and Backend API
-  # ----------------------------------------------------
   deploy-cloud:
     name: Deploy to Cloud (CD)
     needs: validate
@@ -93,9 +89,6 @@ jobs:
             echo "Warning: VERCEL_ADMIN_DEPLOY_HOOK_URL secret is not set. Skipping..."
           fi
 
-  # ----------------------------------------------------
-  # 3. CD Mobile Job: Compiles, Signs, and Releases the Android App
-  # ----------------------------------------------------
   build-and-release-android:
     name: Build & Release Android App (CD)
     needs: validate
@@ -121,16 +114,18 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Build Packages First
+      - name: Build Shared Packages
         run: |
           echo "Building shared packages..."
-          npm run build --workspace=packages/types
-          npm run build --workspace=packages/utils
-          npm run build --workspace=packages/config
-          npm run build --workspace=packages/ui
+          npm run build --workspace=packages/types --if-present
+          npm run build --workspace=packages/utils --if-present
+          npm run build --workspace=packages/ui --if-present
 
-      - name: Build Monorepo (Apps)
-        run: npm run build --workspace=apps --if-present
+      - name: Build Apps Individually
+        run: |
+          npm run build --workspace=apps/web --if-present
+          npm run build --workspace=apps/admin --if-present
+          npm run build --workspace=apps/backend --if-present
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
