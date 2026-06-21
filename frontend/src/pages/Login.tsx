@@ -24,7 +24,7 @@ const FEATURES = [
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { fetchMe, login, register } = useAuthStore();
+  const { fetchMe, login, register, isAuthenticated } = useAuthStore();
   const handledRef = useRef(false);
 
   const [isSignUp, setIsSignUp] = useState(false);
@@ -32,6 +32,13 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      const returnUrl = (history.state as { usr?: { returnUrl?: string } })?.usr?.returnUrl || '/';
+      navigate(returnUrl, { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (handledRef.current) return;
@@ -125,10 +132,7 @@ export function Login() {
         {/* Logo */}
         <div className="relative z-10">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <span className="text-3xl font-black tracking-tight">
-              <span className="text-v-orange">V19</span>
-              <span className="text-v-text">+</span>
-            </span>
+            <img src="/logo.png" alt="V19+" className="h-10 md:h-12 object-contain" />
           </Link>
         </div>
 
@@ -202,10 +206,7 @@ export function Login() {
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-10">
             <Link to="/" className="inline-flex items-center gap-1">
-              <span className="text-3xl font-black">
-                <span className="text-v-orange">V19</span>
-                <span className="text-v-text">+</span>
-              </span>
+              <img src="/logo.png" alt="V19+" className="h-8 mx-auto object-contain" />
             </Link>
           </div>
 

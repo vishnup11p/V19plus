@@ -70,51 +70,31 @@ export function AdminLayout() {
         className="bg-[#141414] border-r border-n-divider flex flex-col fixed h-full z-30 overflow-hidden"
       >
         {/* Logo */}
-        <div className="h-16 flex items-center border-b border-n-divider flex-shrink-0 relative group">
-          {sidebarOpen ? (
-            <div className="w-full flex items-center px-4">
-              <Link to="/admin" className="flex items-center gap-2.5 min-w-0">
-                <div 
-                  className="w-8 h-8 rounded-lg bg-[#FF5C00] flex items-center justify-center font-black text-base text-[#0A0806]" 
-                  style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}
-                >
-                  V
-                </div>
-                <AnimatePresence>
-                  {sidebarOpen && (
-                    <motion.span
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: 'auto' }}
-                      exit={{ opacity: 0, width: 0 }}
-                      className="font-black text-[#FAF6EF] text-lg whitespace-nowrap overflow-hidden"
-                      style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}
-                    >
-                      V19<span className="text-[#FF5C00]">+</span> Admin
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </Link>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="ml-auto text-n-muted hover:text-n-text transition-colors flex-shrink-0"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                </svg>
-              </button>
-            </div>
-          ) : (
+        <div className="h-16 flex items-center border-b border-n-divider flex-shrink-0 relative group px-4">
+          <Link to="/admin" className="flex items-center min-w-0 overflow-hidden">
+            <img 
+              src="/logo.png" 
+              alt="Admin" 
+              className="h-7 object-contain max-w-none transition-all duration-200" 
+              style={{ width: sidebarOpen ? '135px' : '28px', objectPosition: 'left center' }} 
+            />
+          </Link>
+          {sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="ml-auto text-n-muted hover:text-n-text transition-colors flex-shrink-0"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+          {!sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(true)}
-              className="w-full h-full flex items-center justify-center relative cursor-pointer focus:outline-none"
-            >
-              <div 
-                className="w-8 h-8 rounded-lg bg-[#FF5C00] flex items-center justify-center font-black text-base text-[#0A0806] transition-transform duration-200 group-hover:scale-110" 
-                style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}
-              >
-                V
-              </div>
-            </button>
+              className="absolute inset-0 w-full h-full cursor-pointer focus:outline-none bg-transparent"
+              aria-label="Expand sidebar"
+            />
           )}
         </div>
 

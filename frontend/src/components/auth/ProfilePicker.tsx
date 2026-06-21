@@ -170,9 +170,7 @@ export function ProfilePicker({ onSelect }: ProfilePickerProps) {
       >
         {/* Logo */}
         <div className="mb-10">
-          <span className="text-3xl font-black tracking-tight text-n-red">
-            V19<span className="text-n-white">+</span>
-          </span>
+          <img src="/logo.png" alt="V19+" className="h-10 mx-auto object-contain" />
         </div>
 
         <h1 className="text-3xl md:text-4xl font-black text-n-white mb-2">Who's watching?</h1>

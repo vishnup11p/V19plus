@@ -1,4 +1,4 @@
-import { useState, useId } from 'react';
+import { useState, useId, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
@@ -78,10 +78,16 @@ function validate(email: string, password: string) {
 }
 
 export function AdminLogin() {
-  const { adminLogin } = useAuthStore();
+  const { adminLogin, isAuthenticated, isAdmin } = useAuthStore();
   const navigate = useNavigate();
   const emailId = useId();
   const passwordId = useId();
+
+  useEffect(() => {
+    if (isAuthenticated && isAdmin()) {
+      navigate('/admin', { replace: true });
+    }
+  }, [isAuthenticated, isAdmin, navigate]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -136,10 +142,7 @@ export function AdminLogin() {
         {/* Logo */}
         <div className="text-center mb-10">
           <Link to="/" className="inline-block" aria-label="Go to homepage">
-            <span className="text-4xl font-black tracking-tight">
-              <span className="text-v-orange">V19</span>
-              <span className="text-v-text">+</span>
-            </span>
+            <img src="/logo.png" alt="V19+" className="h-10 mx-auto object-contain" />
           </Link>
           <div className="mt-3 flex items-center justify-center gap-2">
             <span className="bg-v-orange/15 border border-v-orange/25 text-v-orange text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full">

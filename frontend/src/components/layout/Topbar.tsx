@@ -112,25 +112,8 @@ export function Topbar() {
           )}
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group">
-            {settings?.logoUrl ? (
-              <img src={settings.logoUrl} alt={siteName} className="h-8 object-contain" />
-            ) : (
-              <>
-                <div 
-                  className="w-9 h-9 rounded-xl bg-[#FF5C00] flex items-center justify-center font-black text-lg text-[#0A0806]" 
-                  style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}
-                >
-                  V
-                </div>
-                <div 
-                  className="text-2xl font-black tracking-tight text-[#FAF6EF]" 
-                  style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}
-                >
-                  V19<span className="text-[#FF5C00]">+</span>
-                </div>
-              </>
-            )}
+          <Link to="/" className="flex-shrink-0">
+            <img src="/logo.png" alt={siteName} className="h-8 md:h-10 object-contain" />
           </Link>
 
           {/* Desktop nav */}
