@@ -25,6 +25,10 @@ export function Profile() {
   const updateMutation = useMutation({
     mutationFn: () => userApi.updateProfile({ name }),
     onSuccess: () => { fetchMe(); toast.success('Profile updated'); },
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Failed to update profile';
+      toast.error(msg);
+    },
   });
 
   const createMutation = useMutation({
@@ -34,6 +38,10 @@ export function Profile() {
       setNewProfileName('');
       toast.success('Profile created');
     },
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Failed to create profile';
+      toast.error(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -41,6 +49,10 @@ export function Profile() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
       toast.success('Profile deleted');
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Failed to delete profile';
+      toast.error(msg);
     },
   });
 
@@ -140,7 +152,7 @@ export function Profile() {
           <div className="space-y-3">
             <p className="text-sm font-medium text-n-text">Add Profile</p>
             <div className="flex gap-2">
-              {AVATAR_COLORS.map((c) => (
+              {AVATAR_COLORS.map((c: any) => (
                 <button
                   key={c}
                   onClick={() => setSelectedColor(c)}
@@ -153,7 +165,7 @@ export function Profile() {
             <div className="flex gap-3">
               <input
                 value={newProfileName}
-                onChange={(e) => setNewProfileName(e.target.value)}
+                onChange={(e: any) => setNewProfileName(e.target.value)}
                 placeholder="Profile name"
                 className="flex-1 px-4 py-3 bg-n-raised border border-n-divider rounded-xl text-n-text placeholder:text-n-muted focus:outline-none focus:border-n-white/40 transition-colors text-sm"
               />

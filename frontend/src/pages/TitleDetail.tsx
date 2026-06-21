@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useContent } from '../hooks/useContent';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ProgressBar } from '../components/ui/ProgressBar';
-import { watchlistApi } from '../api/watchlist';
+import { useWatchlist } from '../hooks/useWatchlist';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
@@ -13,22 +13,23 @@ export function TitleDetail() {
   const { data: content, isLoading } = useContent(slug || '');
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const [inList, setInList] = useState(false);
+  const { inList: checkInList, add, remove } = useWatchlist();
+  const inList = content ? checkInList(content.id) : false;
   const [activeSeason, setActiveSeason] = useState(0);
 
   const handleWatchlist = async () => {
     if (!isAuthenticated) { toast.error('Sign in to add to your list'); return; }
     try {
       if (inList) {
-        await watchlistApi.remove(content!.id);
-        setInList(false);
+        await remove(content!.id);
         toast.success('Removed from My List');
       } else {
-        await watchlistApi.add(content!.id);
-        setInList(true);
+        await add(content!.id);
         toast.success('Added to My List');
       }
-    } catch { toast.error('Could not update list'); }
+    } catch {
+      // errors are handled by hook
+    }
   };
 
   if (isLoading) {

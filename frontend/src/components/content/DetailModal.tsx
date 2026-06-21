@@ -3,31 +3,31 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useUiStore } from '../../store/uiStore';
 import { useContent } from '../../hooks/useContent';
 import { Skeleton } from '../ui/Skeleton';
-import { watchlistApi } from '../../api/watchlist';
+import { useWatchlist } from '../../hooks/useWatchlist';
 import { useAuthStore } from '../../store/authStore';
-import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 export function DetailModal() {
   const { detailModal, closeDetail } = useUiStore();
   const { data: content, isLoading } = useContent(detailModal.slug || '');
   const navigate = useNavigate();
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const [inList, setInList] = useState(false);
+  const isAuthenticated = useAuthStore((s: any) => s.isAuthenticated);
+  const { inList: checkInList, add, remove } = useWatchlist();
+  const inList = content ? checkInList(content.id) : false;
 
   const handleWatchlist = async () => {
     if (!isAuthenticated) { toast.error('Sign in to add to your list'); return; }
     try {
       if (inList) {
-        await watchlistApi.remove(content!.id);
-        setInList(false);
+        await remove(content!.id);
         toast.success('Removed from My List');
       } else {
-        await watchlistApi.add(content!.id);
-        setInList(true);
+        await add(content!.id);
         toast.success('Added to My List');
       }
-    } catch { toast.error('Could not update list'); }
+    } catch {
+      // errors are handled by hook
+    }
   };
 
   return (
@@ -134,7 +134,7 @@ export function DetailModal() {
                   {/* Genre tags */}
                   {content.genre?.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-5">
-                      {content.genre.map((g) => (
+                      {content.genre.map((g: any) => (
                         <span key={g} className="text-xs px-3 py-1 rounded-full bg-n-raised border border-n-divider text-n-muted">
                           {g}
                         </span>

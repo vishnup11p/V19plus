@@ -2,7 +2,7 @@ import prisma from '../../config/db';
 import redis from '../../config/redis';
 import { AppError } from '../../middleware/errorHandler';
 import { logger } from '../../utils/logger';
-import { historyEntryKey } from '../../utils/jsonArray';
+import { historyEntryKey, asStringArray } from '../../utils/jsonArray';
 
 interface UpsertData {
   contentId: string;
@@ -12,7 +12,7 @@ interface UpsertData {
 }
 
 const FLUSH_INTERVAL_MS = 30000;
-const pendingFlushes = new Map<string, NodeJS.Timeout>();
+const pendingFlushes = new Map<string, any>();
 
 async function flushToDb(userId: string, data: UpsertData) {
   const completed = data.completed ?? data.progress >= 95;
@@ -47,12 +47,12 @@ export async function getHistory(userId: string) {
     },
   });
 
-  return history.map((h) => ({
+  return history.map((h: any) => ({
     ...h,
     content: {
       ...h.content,
-      genre: Array.isArray(h.content.genre) ? h.content.genre : [],
-      tags: Array.isArray(h.content.tags) ? h.content.tags : [],
+      genre: asStringArray(h.content.genre),
+      tags: asStringArray(h.content.tags),
     },
   }));
 }
@@ -66,7 +66,7 @@ export async function upsert(userId: string, data: UpsertData) {
 
   const flushKey = `${userId}:${data.contentId}:${data.episodeId || 'movie'}`;
   if (!pendingFlushes.has(flushKey)) {
-    const timeout = setTimeout(async () => {
+    const timeout = (globalThis as any).setTimeout(async () => {
       try {
         const buffered = await redis.get(bufferKey);
         if (buffered) {

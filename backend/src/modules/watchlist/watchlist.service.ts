@@ -1,5 +1,6 @@
 import prisma from '../../config/db';
 import { AppError } from '../../middleware/errorHandler';
+import { serializeContent } from '../../utils/jsonArray';
 
 export async function getWatchlist(userId: string) {
   const items = await prisma.watchlist.findMany({
@@ -9,7 +10,10 @@ export async function getWatchlist(userId: string) {
       content: { include: { cast: { take: 3 } } },
     },
   });
-  return items;
+  return items.map((item: any) => ({
+    ...item,
+    content: serializeContent(item.content),
+  }));
 }
 
 export async function addToWatchlist(userId: string, contentId: string) {

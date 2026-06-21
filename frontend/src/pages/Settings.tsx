@@ -70,6 +70,10 @@ export function Settings() {
   const updateMutation = useMutation({
     mutationFn: () => userApi.updateProfile({ name }),
     onSuccess: () => { fetchMe(); toast.success('Account updated'); },
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Failed to update account';
+      toast.error(msg);
+    },
   });
 
   const createMutation = useMutation({
@@ -79,6 +83,10 @@ export function Settings() {
       setNewProfileName('');
       toast.success('Profile created');
     },
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Failed to create profile';
+      toast.error(msg);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -86,6 +94,10 @@ export function Settings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
       toast.success('Profile removed');
+    },
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Failed to delete profile';
+      toast.error(msg);
     },
   });
 

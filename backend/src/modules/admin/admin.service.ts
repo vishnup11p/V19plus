@@ -34,12 +34,12 @@ export async function listContent() {
     orderBy: { createdAt: 'desc' },
     include: { cast: { take: 2 }, _count: { select: { seasons: true } } },
   });
-  return items.map((c) => serializeContent(c));
+  return items.map((c: any) => serializeContent(c));
 }
 
 export async function createContent(data: any) {
   const genre = Array.isArray(data.genre) ? JSON.stringify(data.genre) : data.genre;
-  const tags = Array.isArray(data.tags) ? JSON.stringify(data.tags || []) : (data.tags || '[]');
+  const tags = Array.isArray(data.tags) ? data.tags : [];
   return prisma.content.create({
     data: { ...data, genre, tags },
   });
@@ -50,7 +50,7 @@ export async function updateContent(id: string, data: any) {
   if (!existing) throw new AppError('Content not found', 404);
   const payload = { ...data };
   if (Array.isArray(data.genre)) payload.genre = JSON.stringify(data.genre);
-  if (Array.isArray(data.tags)) payload.tags = JSON.stringify(data.tags);
+  if (Array.isArray(data.tags)) payload.tags = data.tags;
   return prisma.content.update({ where: { id }, data: payload });
 }
 

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Content } from '../../api/content';
 import { ProgressBar } from '../ui/ProgressBar';
-import { watchlistApi } from '../../api/watchlist';
+import { useWatchlist } from '../../hooks/useWatchlist';
 import { useAuthStore } from '../../store/authStore';
 import { useUiStore } from '../../store/uiStore';
 import toast from 'react-hot-toast';
@@ -18,9 +18,10 @@ interface ContentCardProps {
 export function ContentCard({ content, progress, rank, size = 'md' }: ContentCardProps) {
   const [hovered, setHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const [inList, setInList] = useState(false);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const openDetail = useUiStore((s) => s.openDetail);
+  const { inList: checkInList, add, remove } = useWatchlist();
+  const inList = checkInList(content.id);
+  const isAuthenticated = useAuthStore((s: any) => s.isAuthenticated);
+  const openDetail = useUiStore((s: any) => s.openDetail);
   const navigate = useNavigate();
   const hoverTimeout = useRef<ReturnType<typeof setTimeout>>();
 
@@ -41,16 +42,14 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
     if (!isAuthenticated) { toast.error('Sign in to add to your list'); return; }
     try {
       if (inList) {
-        await watchlistApi.remove(content.id);
-        setInList(false);
+        await remove(content.id);
         toast.success('Removed from My List');
       } else {
-        await watchlistApi.add(content.id);
-        setInList(true);
+        await add(content.id);
         toast.success('Added to My List');
       }
     } catch {
-      toast.error(inList ? 'Already in your list' : 'Could not update list');
+      // errors are handled by hook
     }
   };
 
@@ -138,7 +137,7 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
             style={{ zIndex: 30 }}
             onMouseEnter={() => clearTimeout(hoverTimeout.current)}
             onMouseLeave={() => setHovered(false)}
-            onClick={(e) => e.preventDefault()}
+            onClick={(e: any) => e.preventDefault()}
           >
             {/* Preview image */}
             <div className="relative aspect-video overflow-hidden bg-n-surface">

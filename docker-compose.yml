@@ -1,6 +1,18 @@
 version: '3.9'
 
 services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: v19plus
+      POSTGRES_PASSWORD: v19plus_password
+      POSTGRES_DB: v19plus_db
+    ports:
+      - '5433:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   backend:
     build: ./backend
     ports:
@@ -8,13 +20,14 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: file:./prisma/dev.db
+      DATABASE_URL: postgresql://v19plus:v19plus_password@db:5432/v19plus_db
       REDIS_URL: memory://
       PORT: 4000
     volumes:
       - ./backend:/app
       - /app/node_modules
-      - sqlite_data:/app/prisma
+    depends_on:
+      - db
     command: sh -c "npx prisma db push && npm run dev"
 
   frontend:
@@ -44,4 +57,4 @@ services:
       - backend
 
 volumes:
-  sqlite_data:
+  pgdata:

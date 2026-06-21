@@ -30,7 +30,7 @@ export async function listContent(query: ListQuery) {
   });
 
   if (query.genre) {
-    items = items.filter((item) => contentMatchesGenre(item.genre, query.genre!));
+    items = items.filter((item: any) => contentMatchesGenre(item.genre, query.genre!));
   }
 
   const total = items.length;
@@ -69,14 +69,14 @@ export async function getTrending() {
     take: 10,
   });
 
-  const contentIds = trending.map((t) => t.contentId);
+  const contentIds = trending.map((t: any) => t.contentId);
   const items = await prisma.content.findMany({
     where: { id: { in: contentIds }, isPublished: true },
     include: { cast: { take: 3 } },
   });
 
   const sorted = withSerializedGenreTags(
-    contentIds.map((id) => items.find((c) => c.id === id)).filter(Boolean) as typeof items
+    contentIds.map((id: any) => items.find((c: any) => c.id === id)).filter(Boolean) as typeof items
   );
 
   await cacheSet(cacheKey, sorted, 600);
@@ -103,7 +103,7 @@ export async function getContinueWatching(userId: string) {
     },
   });
 
-  return history.map((h) => ({
+  return history.map((h: any) => ({
     ...h,
     content: serializeContent(h.content),
   }));
@@ -117,7 +117,7 @@ export async function getRecommended(userId: string) {
   });
 
   const genreCount: Record<string, number> = {};
-  watched.forEach((h) => {
+  watched.forEach((h: any) => {
     asStringArray(h.content.genre).forEach((g) => {
       genreCount[g] = (genreCount[g] || 0) + 1;
     });
@@ -128,7 +128,7 @@ export async function getRecommended(userId: string) {
     .slice(0, 3)
     .map(([g]) => g);
 
-  const watchedIds = [...new Set(watched.map((h) => h.contentId))];
+  const watchedIds = [...new Set(watched.map((h: any) => h.contentId))];
 
   let candidates = await prisma.content.findMany({
     where: { isPublished: true, id: { notIn: watchedIds } },
@@ -138,7 +138,7 @@ export async function getRecommended(userId: string) {
   });
 
   if (topGenres.length > 0) {
-    const matched = candidates.filter((c) => contentMatchesGenres(c.genre, topGenres));
+    const matched = candidates.filter((c: any) => contentMatchesGenres(c.genre, topGenres));
     if (matched.length > 0) candidates = matched;
   }
 
@@ -190,14 +190,26 @@ export async function getEpisodes(contentId: string) {
 }
 
 export async function createContent(data: any) {
-  const content = await prisma.content.create({ data, include: { cast: true } });
+  const genre = Array.isArray(data.genre) ? JSON.stringify(data.genre) : data.genre;
+  const tags = Array.isArray(data.tags) ? data.tags : [];
+  const content = await prisma.content.create({
+    data: { ...data, genre, tags },
+    include: { cast: true },
+  });
   return serializeContent(content);
 }
 
 export async function updateContent(id: string, data: any) {
   const existing = await prisma.content.findUnique({ where: { id } });
   if (!existing) throw new AppError('Content not found', 404);
-  const content = await prisma.content.update({ where: { id }, data, include: { cast: true } });
+  const payload = { ...data };
+  if (Array.isArray(data.genre)) payload.genre = JSON.stringify(data.genre);
+  if (Array.isArray(data.tags)) payload.tags = data.tags;
+  const content = await prisma.content.update({
+    where: { id },
+    data: payload,
+    include: { cast: true },
+  });
   return serializeContent(content);
 }
 
