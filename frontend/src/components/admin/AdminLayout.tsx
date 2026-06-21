@@ -70,31 +70,50 @@ export function AdminLayout() {
         className="bg-[#141414] border-r border-n-divider flex flex-col fixed h-full z-30 overflow-hidden"
       >
         {/* Logo */}
-        <div className="h-16 flex items-center px-4 border-b border-n-divider flex-shrink-0">
-          <Link to="/admin" className="flex items-center gap-3 min-w-0">
-            <span className="text-2xl font-black text-n-red flex-shrink-0">V</span>
-            <AnimatePresence>
-              {sidebarOpen && (
-                <motion.span
-                  initial={{ opacity: 0, width: 0 }}
-                  animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="font-bold text-n-white text-sm whitespace-nowrap overflow-hidden"
-                >
-                  19+ Admin
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </Link>
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="ml-auto text-n-muted hover:text-n-text transition-colors flex-shrink-0"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d={sidebarOpen ? "M11 19l-7-7 7-7m8 14l-7-7 7-7" : "M13 5l7 7-7 7M5 5l7 7-7 7"} />
-            </svg>
-          </button>
+        <div className="h-16 flex items-center border-b border-n-divider flex-shrink-0 relative group">
+          {sidebarOpen ? (
+            <div className="w-full flex items-center px-4">
+              <Link to="/admin" className="flex items-center gap-3 min-w-0">
+                <span className="text-2xl font-black text-n-red flex-shrink-0">V</span>
+                <AnimatePresence>
+                  {sidebarOpen && (
+                    <motion.span
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className="font-bold text-n-white text-sm whitespace-nowrap overflow-hidden"
+                    >
+                      19+ Admin
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </Link>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="ml-auto text-n-muted hover:text-n-text transition-colors flex-shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="w-full h-full flex items-center justify-center relative cursor-pointer focus:outline-none"
+            >
+              {/* Logo V (default) */}
+              <div className="absolute inset-0 flex items-center justify-center transition-all duration-200 group-hover:opacity-0 group-hover:scale-75">
+                <span className="text-2xl font-black text-n-red">V</span>
+              </div>
+              {/* Toggle Arrow (on hover) */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 scale-75 transition-all duration-200 group-hover:opacity-100 group-hover:scale-100 text-n-muted hover:text-n-text">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Nav */}
