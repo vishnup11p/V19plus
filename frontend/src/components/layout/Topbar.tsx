@@ -112,37 +112,66 @@ export function Topbar() {
           )}
 
           {/* Logo */}
-          <Link to="/" className="flex-shrink-0">
+          <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group">
             {settings?.logoUrl ? (
-              <img src={settings.logoUrl} alt={siteName} className="h-7 object-contain" />
+              <img src={settings.logoUrl} alt={siteName} className="h-8 object-contain" />
             ) : (
-              <span className="text-2xl font-black tracking-tight text-n-red">
-                {siteName.replace('+', '')}<span className="text-n-text">+</span>
-              </span>
+              <>
+                <div 
+                  className="w-9 h-9 rounded-xl bg-[#FF5C00] flex items-center justify-center font-black text-lg text-[#0A0806]" 
+                  style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}
+                >
+                  V
+                </div>
+                <div 
+                  className="text-2xl font-black tracking-tight text-[#FAF6EF]" 
+                  style={{ fontFamily: "'Big Shoulders Display', sans-serif" }}
+                >
+                  V19<span className="text-[#FF5C00]">+</span>
+                </div>
+              </>
             )}
           </Link>
 
           {/* Desktop nav */}
           {isAuthenticated && (
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-6">
               {NAV_LINKS.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  className={`relative py-5 text-sm font-semibold transition-colors duration-200 ${
                     isActive(link.to)
-                      ? 'text-n-white'
-                      : 'text-n-muted hover:text-n-text'
+                      ? 'text-[#FAF6EF]'
+                      : 'text-[#8C8478] hover:text-[#FAF6EF]'
                   }`}
                 >
                   {link.label}
+                  {isActive(link.to) && (
+                    <motion.div
+                      layoutId="activeIndicator"
+                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF5C00]"
+                      style={{ boxShadow: '0 0 8px #FF5C00' }}
+                    />
+                  )}
                 </Link>
               ))}
               <Link
                 to="/subscription"
-                className="px-3 py-1.5 text-sm font-medium text-n-muted hover:text-n-text transition-colors"
+                className={`relative py-5 text-sm font-semibold transition-colors duration-200 ${
+                  isActive('/subscription')
+                    ? 'text-[#FAF6EF]'
+                    : 'text-[#8C8478] hover:text-[#FAF6EF]'
+                }`}
               >
                 My List
+                {isActive('/subscription') && (
+                  <motion.div
+                    layoutId="activeIndicator"
+                    className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#FF5C00]"
+                    style={{ boxShadow: '0 0 8px #FF5C00' }}
+                  />
+                )}
               </Link>
             </nav>
           )}

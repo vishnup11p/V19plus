@@ -26,6 +26,9 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
   const navigate = useNavigate();
   const hoverTimeout = useRef<ReturnType<typeof setTimeout>>();
 
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+
   const { data: scores } = useMatchScores(isAuthenticated ? [content.id] : []);
   const matchScore = scores?.[content.id];
 
@@ -35,9 +38,23 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
     hoverTimeout.current = setTimeout(() => setHovered(true), 300);
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = e.currentTarget;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const cx = rect.width / 2;
+    const cy = rect.height / 2;
+    const rotX = ((y - cy) / cy) * -8;
+    const rotY = ((x - cx) / cx) * 8;
+    setCoords({ x, y });
+    setTilt({ x: rotX, y: rotY });
+  };
+
   const handleMouseLeave = () => {
     clearTimeout(hoverTimeout.current);
     setHovered(false);
+    setTilt({ x: 0, y: 0 });
   };
 
   const handleWatchlist = async (e: React.MouseEvent) => {
@@ -74,10 +91,19 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
       className={`relative flex-shrink-0 ${widths[size]} group`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      onMouseMove={handleMouseMove}
     >
-      <Link to={`/title/${content.slug}`} className="block">
+      <Link 
+        to={`/title/${content.slug}`} 
+        className="block relative rounded-2xl overflow-hidden bg-[#181410] border border-white/5 transition-all duration-300 hover:border-[#FF5C00]/60 hover:shadow-2xl hover:shadow-[#FF5C00]/10"
+        style={{
+          transform: hovered ? 'none' : `perspective(600px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(1)`,
+          transition: 'transform 0.1s ease-out, border-color 0.25s, box-shadow 0.25s',
+          transformStyle: 'preserve-3d',
+        }}
+      >
         {/* Thumbnail */}
-        <div className="relative aspect-[2/3] rounded-md overflow-hidden bg-n-surface">
+        <div className="relative aspect-[2/3] rounded-2xl overflow-hidden">
           {!imgError ? (
             <img
               src={content.thumbnailUrl}
@@ -92,15 +118,24 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
             </div>
           )}
 
+          {/* Cursor tracking glow */}
+          <div 
+            className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            style={{
+              background: `radial-gradient(150px circle at ${coords.x}px ${coords.y}px, rgba(255,92,0,0.25), transparent 60%)`,
+              mixBlendMode: 'screen'
+            }}
+          />
+
           {/* Rank badge */}
           {rank !== undefined && rank <= 10 && (
-            <div className="absolute bottom-0 left-0 w-10 h-14 flex items-end justify-start">
+            <div className="absolute bottom-1 left-2 z-10">
               <span
-                className="text-6xl font-black leading-none text-n-white"
+                className="text-7xl font-black leading-none"
                 style={{
-                  WebkitTextStroke: '2px #1f1f1f',
-                  textShadow: '2px 2px 8px rgba(0,0,0,0.8)',
-                  fontFamily: 'Arial Black, sans-serif',
+                  fontFamily: "'Big Shoulders Display', sans-serif",
+                  color: 'transparent',
+                  WebkitTextStroke: '2px rgba(255,92,0,0.65)',
                 }}
               >
                 {rank}
@@ -117,16 +152,16 @@ export function ContentCard({ content, progress, rank, size = 'md' }: ContentCar
 
           {/* Original badge */}
           {content.isOriginal && !rank && (
-            <div className="absolute top-2 left-2">
-              <span className="text-2xs font-black text-n-red uppercase tracking-wider">
-                V19+
+            <div className="absolute top-3 left-3 bg-[#FF5C00]/25 backdrop-blur-md border border-[#FF5C00]/45 px-2 py-0.5 rounded-md">
+              <span className="text-[10px] font-black text-[#FFB07A] uppercase tracking-wider">
+                V19+ Original
               </span>
             </div>
           )}
         </div>
 
         {/* Title below card (visible on mobile) */}
-        <p className="mt-1.5 text-xs text-n-muted truncate px-0.5 md:hidden">{content.title}</p>
+        <p className="mt-1.5 text-xs text-n-muted truncate px-2 pb-2 md:hidden">{content.title}</p>
       </Link>
 
       {/* Hover card */}
