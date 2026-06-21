@@ -7,6 +7,7 @@ import {
 } from '../hooks/useContent';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
+import { Landing } from './Landing';
 
 export function Home() {
   const { data: featured, isLoading: featuredLoading } = useFeatured();
@@ -17,6 +18,10 @@ export function Home() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const activeGenre = useUiStore((s) => s.activeGenre);
   const { data: genreContent, isLoading: genreLoading } = useBrowse(undefined, activeGenre || undefined);
+
+  if (!isAuthenticated) {
+    return <Landing />;
+  }
 
   const heroContent = featured?.[0];
 

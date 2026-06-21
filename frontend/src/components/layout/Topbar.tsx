@@ -51,18 +51,20 @@ export function Topbar() {
         {/* Logo + Nav */}
         <div className="flex items-center gap-8">
           {/* Mobile menu toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-n-text p-1"
-            aria-label="Menu"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileMenuOpen
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              }
-            </svg>
-          </button>
+          {isAuthenticated && (
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden text-n-text p-1"
+              aria-label="Menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {mobileMenuOpen
+                  ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                }
+              </svg>
+            </button>
+          )}
 
           {/* Logo */}
           <Link to="/" className="flex-shrink-0">
@@ -76,43 +78,45 @@ export function Topbar() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-                  isActive(link.to)
-                    ? 'text-n-white'
-                    : 'text-n-muted hover:text-n-text'
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {isAuthenticated && (
+          {isAuthenticated && (
+            <nav className="hidden md:flex items-center gap-1">
+              {NAV_LINKS.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                    isActive(link.to)
+                      ? 'text-n-white'
+                      : 'text-n-muted hover:text-n-text'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
               <Link
                 to="/subscription"
                 className="px-3 py-1.5 text-sm font-medium text-n-muted hover:text-n-text transition-colors"
               >
                 My List
               </Link>
-            )}
-          </nav>
+            </nav>
+          )}
         </div>
 
         {/* Right controls */}
         <div className="flex items-center gap-3 md:gap-4">
           {/* Search */}
-          <button
-            onClick={() => navigate('/search')}
-            className="w-9 h-9 flex items-center justify-center text-n-muted hover:text-n-white transition-colors"
-            aria-label="Search"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
+          {isAuthenticated && (
+            <button
+              onClick={() => navigate('/search')}
+              className="w-9 h-9 flex items-center justify-center text-n-muted hover:text-n-white transition-colors"
+              aria-label="Search"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          )}
 
           {isAuthenticated ? (
             /* Profile dropdown */
