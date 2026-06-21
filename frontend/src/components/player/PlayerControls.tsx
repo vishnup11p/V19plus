@@ -28,7 +28,6 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
 
   const [showSettings, setShowSettings] = useState(false);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
-  const [hoverX, setHoverX] = useState(0);
   const progressRef = useRef<HTMLDivElement>(null);
 
   const pct = duration > 0 ? (progress / duration) * 100 : 0;
@@ -46,7 +45,6 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
     const x = e.clientX - rect.left;
     const pct = x / rect.width;
     setHoverTime(pct * duration);
-    setHoverX(e.clientX);
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {

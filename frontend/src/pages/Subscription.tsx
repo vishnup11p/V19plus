@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 export function Subscription() {
   const [searchParams] = useSearchParams();
-  const { fetchMe, user } = useAuthStore();
+  const { fetchMe } = useAuthStore();
   const queryClient = useQueryClient();
 
   useEffect(() => {

@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
 
 const FOOTER_LINKS = [

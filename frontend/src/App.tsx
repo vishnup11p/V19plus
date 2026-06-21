@@ -1,6 +1,5 @@
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Topbar } from './components/layout/Topbar';
-import { Sidebar } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
 import { DetailModal } from './components/content/DetailModal';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';

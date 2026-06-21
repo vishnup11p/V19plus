@@ -109,7 +109,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   updateProgress: (progress) => {
     set({ progress });
-    const { currentContent, currentEpisode } = get();
+    const { currentContent } = get();
     if (!currentContent) return;
 
     if (saveTimeout) clearTimeout(saveTimeout);

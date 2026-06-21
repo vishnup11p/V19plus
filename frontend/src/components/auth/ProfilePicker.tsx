@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { userApi, Profile } from '../../api/user';
 import { useAuthStore, ActiveProfile } from '../../store/authStore';
 
-const AVATAR_ICONS = ['🎬', '🎭', '🍿', '🎮', '🎵', '🌟', '🦁', '🐉'];
-
 interface ProfilePickerProps {
   onSelect: () => void;
 }

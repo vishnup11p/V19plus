@@ -19,7 +19,7 @@ export function Home() {
   const { data: continueWatching, isLoading: continueLoading } = useContinueWatching();
   const { data: recommended, isLoading: recommendedLoading } = useRecommended();
   const { data: becauseYouWatched, isLoading: becauseLoading } = useBecauseYouWatched();
-  const { isAuthenticated, isLoading, activeProfile, setActiveProfile } = useAuthStore();
+  const { isAuthenticated, isLoading, activeProfile } = useAuthStore();
   const activeGenre = useUiStore((s) => s.activeGenre);
   const { data: genreContent, isLoading: genreLoading } = useBrowse(undefined, activeGenre || undefined);
 

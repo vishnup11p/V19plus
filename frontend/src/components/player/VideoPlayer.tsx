@@ -34,7 +34,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
 
   const videoUrl = episode?.videoUrl || content.videoUrl || '';
   const totalDuration = episode?.duration ? episode.duration * 60 : (content.duration || 0) * 60;
-  const nextEpisode = content.seasons?.flatMap((s) => s.episodes).find((e, i, arr) => {
+  const nextEpisode = content.seasons?.flatMap((s) => s.episodes).find((_, i, arr) => {
     const idx = arr.findIndex((ep) => ep.id === episodeId);
     return idx >= 0 && i === idx + 1;
   });
