@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { uploadVideo } from './video-process.controller';
-import { authenticate, authorize } from '../../middleware/auth';
+import { authenticate, requireAdmin } from '../../middleware/auth';
 
 const router = Router();
 
@@ -28,6 +28,6 @@ const upload = multer({
   limits: { fileSize: 2000 * 1024 * 1024 } // 2GB limit
 });
 
-router.post('/upload', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), upload.single('video'), uploadVideo);
+router.post('/upload', authenticate, requireAdmin, upload.single('video'), uploadVideo);
 
 export default router;
