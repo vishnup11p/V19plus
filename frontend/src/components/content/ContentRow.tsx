@@ -46,15 +46,15 @@ export function ContentRow({
   };
 
   return (
-    <section className="mb-8 group/row">
+    <section className="mb-10 group/row perspective-1000 relative z-10">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 md:px-12 mb-3">
-        <h2 className="text-base md:text-lg font-bold text-n-white hover:text-n-muted cursor-pointer transition-colors flex items-center gap-1 group/title">
+      <div className="flex items-center justify-between px-4 md:px-12 mb-4">
+        <h2 className="text-lg md:text-2xl font-display font-black text-white hover:text-v-orange cursor-pointer transition-colors flex items-center gap-2 group/title drop-shadow-md">
           {title}
-          <span className="text-n-red opacity-0 group-hover/title:opacity-100 transition-opacity text-sm ml-1">
-            Explore All
-            <svg className="w-4 h-4 inline-block ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <span className="text-v-orange opacity-0 group-hover/title:opacity-100 transition-opacity text-sm ml-2 tracking-widest uppercase">
+            Access Grid
+            <svg className="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
             </svg>
           </span>
         </h2>
@@ -66,12 +66,12 @@ export function ContentRow({
         {canScrollLeft && (
           <button
             onClick={() => scroll('left')}
-            className="absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-n-bg to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity"
+            className="absolute left-0 top-0 bottom-0 z-20 w-16 bg-gradient-to-r from-v-black via-v-black/80 to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity"
             aria-label="Scroll left"
           >
-            <div className="w-8 h-8 rounded-full bg-n-bg/80 border border-n-divider flex items-center justify-center">
-              <svg className="w-4 h-4 text-n-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+            <div className="w-10 h-10 rounded-full bg-v-card/80 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-v-orange hover:border-v-orange hover:scale-110 transition-all shadow-card-glow hover:shadow-orange-glow group-hover/row:translate-x-2">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
               </svg>
             </div>
           </button>
@@ -81,7 +81,7 @@ export function ContentRow({
         <div
           ref={scrollRef}
           onScroll={updateScrollState}
-          className="flex gap-2 overflow-x-auto px-4 md:px-12 pb-6 pt-2 scrollbar-hide"
+          className="flex gap-4 overflow-x-auto px-4 md:px-12 pb-10 pt-4 scrollbar-hide perspective-1000"
           style={{ scrollbarWidth: 'none' }}
         >
           {historyItems?.map((item) => (
@@ -106,12 +106,12 @@ export function ContentRow({
         {canScrollRight && (
           <button
             onClick={() => scroll('right')}
-            className="absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-n-bg to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity"
+            className="absolute right-0 top-0 bottom-0 z-20 w-16 bg-gradient-to-l from-v-black via-v-black/80 to-transparent flex items-center justify-center opacity-0 group-hover/row:opacity-100 transition-opacity"
             aria-label="Scroll right"
           >
-            <div className="w-8 h-8 rounded-full bg-n-bg/80 border border-n-divider flex items-center justify-center">
-              <svg className="w-4 h-4 text-n-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+            <div className="w-10 h-10 rounded-full bg-v-card/80 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-v-orange hover:border-v-orange hover:scale-110 transition-all shadow-card-glow hover:shadow-orange-glow group-hover/row:-translate-x-2">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
               </svg>
             </div>
           </button>
