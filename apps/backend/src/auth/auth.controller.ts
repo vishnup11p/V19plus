@@ -14,19 +14,19 @@ export class AuthController {
     const user = await this.authService.signup(body.email, body.password, body.name);
     const { accessToken, refreshToken } = await this.authService.login(body.email, body.password, body.deviceId || 'unknown');
     this.authService.setCookies(res, accessToken, refreshToken);
-    return { user };
+    return { user, accessToken, refreshToken };
   }
 
   @Post('login')
   async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
     const { user, accessToken, refreshToken } = await this.authService.login(body.email, body.password, body.deviceId || 'unknown');
     this.authService.setCookies(res, accessToken, refreshToken);
-    return { user };
+    return { user, accessToken, refreshToken };
   }
 
   @Post('refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: any) {
-    const refreshToken = req.cookies['refreshToken'];
+    const refreshToken = req.cookies['refreshToken'] || body.refreshToken;
     if (!refreshToken) {
       return { success: false };
     }
@@ -39,7 +39,7 @@ export class AuthController {
       sameSite: 'lax',
       maxAge: 15 * 60 * 1000,
     });
-    return { success: true };
+    return { success: true, accessToken };
   }
 
   @UseGuards(AuthGuard)
