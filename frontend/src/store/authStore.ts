@@ -13,6 +13,7 @@ export interface ActiveProfile {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   activeProfile: ActiveProfile | null;
@@ -36,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: true,
       activeProfile: null,
@@ -57,17 +59,17 @@ export const useAuthStore = create<AuthState>()(
 
       adminLogin: async (email, password) => {
         const { data } = await authApi.adminLogin(email, password);
-        set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false, activeProfile: null });
+        set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, activeProfile: null });
       },
 
       login: async (email, password) => {
         const { data } = await authApi.login(email, password);
-        set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false, activeProfile: null });
+        set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, activeProfile: null });
       },
 
       register: async (email, password, name) => {
         const { data } = await authApi.register(email, password, name);
-        set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false, activeProfile: null });
+        set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, activeProfile: null });
       },
 
       logout: async () => {
@@ -76,11 +78,11 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           // ignore
         }
-        set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, activeProfile: null });
+        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, activeProfile: null });
       },
 
       refresh: async () => {
-        const { data } = await authApi.refresh();
+        const { data } = await authApi.refresh(get().refreshToken);
         set({ accessToken: data.accessToken });
       },
 
@@ -92,7 +94,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             let token = get().accessToken;
             if (!token) {
-              const { data: refreshData } = await authApi.refresh();
+              const { data: refreshData } = await authApi.refresh(get().refreshToken);
               token = refreshData.accessToken;
               set({ accessToken: token });
             }
@@ -100,7 +102,7 @@ export const useAuthStore = create<AuthState>()(
             set({ user: data, isAuthenticated: true, isLoading: false });
             return true;
           } catch {
-            set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, activeProfile: null });
+            set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, activeProfile: null });
             return false;
           } finally {
             activeFetchMePromise = null;
@@ -116,6 +118,7 @@ export const useAuthStore = create<AuthState>()(
         activeProfile: state.activeProfile,
         user: state.user,
         accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated
       }),
     }

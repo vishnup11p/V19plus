@@ -79,7 +79,7 @@ api.interceptors.response.use(
       try {
         const { data } = await axios.post(
           ((typeof window !== 'undefined' ? (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_API_URL : '') || process.env.NEXT_PUBLIC_API_URL || '/api') + '/auth/refresh',
-          {},
+          { refreshToken: useAuthStore.getState().refreshToken },
           { withCredentials: true }
         );
         useAuthStore.getState().setAccessToken(data.accessToken);

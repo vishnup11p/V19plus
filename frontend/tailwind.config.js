@@ -34,8 +34,18 @@ module.exports = {
       },
       boxShadow: {
         'orange-glow': '0 0 20px rgba(255, 92, 0, 0.45)',
+        'orange-edge': 'inset 0 0 0 1px rgba(255, 92, 0, 0.3), 0 0 30px rgba(255, 92, 0, 0.2)',
+        'glass-edge': 'inset 0 0 0 1px rgba(255, 255, 255, 0.1)',
+        '3d-lift': '0 20px 40px -10px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 92, 0, 0.2)',
         'card-glow': '0 10px 30px -10px rgba(0, 0, 0, 0.7)',
       },
+      dropShadow: {
+        '3d': '0 4px 0px rgba(255, 92, 0, 0.8)',
+        'glow': '0 0 10px rgba(255, 92, 0, 0.6)',
+      },
+      backgroundImage: {
+        'glass-gradient': 'linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%)',
+      }
     },
   },
   plugins: [],

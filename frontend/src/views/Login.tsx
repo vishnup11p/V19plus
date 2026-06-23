@@ -4,22 +4,7 @@ import { motion } from 'framer-motion';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
-
-// Floating background particles
-const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
-  id: i,
-  size: Math.random() * 4 + 2,
-  x: Math.random() * 100,
-  y: Math.random() * 100,
-  delay: Math.random() * 6,
-  duration: Math.random() * 8 + 10,
-}));
-
-const FEATURES = [
-  { icon: '🎬', label: 'Thousands of titles', sub: 'Movies, shows & originals' },
-  { icon: '🎧', label: 'Dolby Atmos audio', sub: 'Immersive surround sound' },
-  { icon: '📱', label: 'Watch anywhere', sub: 'Phone, tablet, TV or browser' },
-];
+import { TiltCard } from '../components/ui/TiltCard';
 
 export function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,7 +34,7 @@ export function Login() {
       handledRef.current = true;
       const msg =
         error === 'invalid_client'
-          ? 'Invalid Google OAuth client. Create a new Web application client in Google Cloud Console and update your .env files.'
+          ? 'Invalid Google OAuth client.'
           : decodeURIComponent(error);
       toast.error(msg, { duration: 6000 });
       setSearchParams({}, { replace: true });
@@ -58,35 +43,33 @@ export function Login() {
 
     if (google === 'success') {
       handledRef.current = true;
-      fetchMe()
-        .then((success) => {
-          if (success) {
-            toast.success('Welcome back! 🎉');
-            const returnUrl =
-              (history.state as { usr?: { returnUrl?: string } })?.usr?.returnUrl || '/';
-            navigate(returnUrl, { replace: true });
-          } else {
-            toast.error('Sign-in succeeded but session could not be restored. Try again.');
-            setSearchParams({}, { replace: true });
-          }
-        });
+      fetchMe().then((success) => {
+        if (success) {
+          toast.success('Uplink Established! 🎉');
+          const returnUrl = (history.state as { usr?: { returnUrl?: string } })?.usr?.returnUrl || '/';
+          navigate(returnUrl, { replace: true });
+        } else {
+          toast.error('Sign-in succeeded but session lost.');
+          setSearchParams({}, { replace: true });
+        }
+      });
     }
   }, [searchParams, setSearchParams, fetchMe, navigate]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || (isSignUp && !name)) {
-      toast.error('Please fill in all required fields');
+      toast.error('Please fill in all fields');
       return;
     }
     setIsSubmitting(true);
     try {
       if (isSignUp) {
         await register(email, password, name);
-        toast.success('Successfully registered and logged in! 🎉');
+        toast.success('Node created and linked! 🎉');
       } else {
         await login(email, password);
-        toast.success('Welcome back! 🎉');
+        toast.success('Uplink Established! 🎉');
       }
       const returnUrl = (history.state as { usr?: { returnUrl?: string } })?.usr?.returnUrl || '/';
       navigate(returnUrl, { replace: true });
@@ -99,245 +82,132 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-v-black overflow-hidden">
-      {/* ── Left panel: brand art ── */}
-      <div className="hidden lg:flex flex-col justify-between w-[55%] relative px-16 py-12 overflow-hidden">
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a00] via-v-black to-[#0d0d0d]" />
-        {/* Glowing orb */}
-        <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-v-orange/10 blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-v-orange/5 blur-[100px] pointer-events-none" />
+    <div className="min-h-screen flex bg-v-black overflow-hidden relative perspective-1000">
+      {/* ── 3D PARALLAX BACKGROUND ── */}
+      <motion.div 
+        className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-screen"
+        style={{ 
+          backgroundImage: `url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2000&auto=format&fit=crop')`,
+          transform: 'translateZ(-200px) scale(1.3)'
+        }}
+        animate={{ rotateZ: [0, -1, 0], scale: [1.3, 1.35, 1.3] }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+      />
+      
+      {/* Floating Holographic Particles */}
+      {Array.from({ length: 30 }).map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1.5 h-1.5 rounded-full bg-v-orange opacity-40 shadow-[0_0_10px_rgba(255,92,0,0.8)]"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+          }}
+          animate={{
+            y: [0, -Math.random() * 200 - 100],
+            x: [0, Math.random() * 100 - 50],
+            opacity: [0, 0.8, 0],
+            scale: [0, 2, 0]
+          }}
+          transition={{
+            duration: Math.random() * 5 + 5,
+            repeat: Infinity,
+            delay: Math.random() * 5,
+            ease: 'easeInOut'
+          }}
+        />
+      ))}
 
-        {/* Floating particles */}
-        {PARTICLES.map((p) => (
-          <motion.div
-            key={p.id}
-            className="absolute rounded-full bg-v-orange/20 pointer-events-none"
-            style={{
-              width: p.size,
-              height: p.size,
-              left: `${p.x}%`,
-              top: `${p.y}%`,
-            }}
-            animate={{ y: [0, -30, 0], opacity: [0.15, 0.5, 0.15] }}
-            transition={{
-              duration: p.duration,
-              delay: p.delay,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-        ))}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,8,6,0.95)_100%)] z-0" />
 
-        {/* Logo */}
-        <div className="relative z-10">
-          <Link to="/" className="inline-flex items-center gap-2 group">
-            <img src="/logo.png" alt="V19+" className="h-10 md:h-12 object-contain" />
-          </Link>
-        </div>
-
-        {/* Hero copy */}
-        <div className="relative z-10 space-y-8">
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          >
-            <h1 className="text-5xl font-black leading-tight text-v-text">
-              Your world of
-              <br />
-              <span className="text-v-orange">entertainment</span>
-              <br />
-              starts here.
-            </h1>
-            <p className="mt-5 text-lg text-v-muted max-w-sm leading-relaxed">
-              Stream the stories that move you — award-winning films, binge-worthy shows, and
-              exclusive originals.
-            </p>
-          </motion.div>
-
-          {/* Feature pills */}
-          <motion.div
-            className="flex flex-col gap-3"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-          >
-            {FEATURES.map((f, i) => (
-              <motion.div
-                key={f.label}
-                className="flex items-center gap-4 bg-white/5 backdrop-blur-sm border border-white/8 rounded-2xl px-5 py-4 w-fit"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.1, duration: 0.5 }}
-              >
-                <span className="text-2xl">{f.icon}</span>
-                <div>
-                  <p className="text-sm font-semibold text-v-text">{f.label}</p>
-                  <p className="text-xs text-v-muted">{f.sub}</p>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Bottom note */}
-        <motion.p
-          className="relative z-10 text-xs text-v-muted/60"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
-        >
-          Cancel any time. No commitments.
-        </motion.p>
-      </div>
-
-      {/* ── Right panel: sign-in card ── */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12 relative">
-        {/* Subtle right panel background */}
-        <div className="absolute inset-0 bg-gradient-to-bl from-v-surface/40 to-v-black" />
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 py-12">
+        <Link to="/" className="mb-12 group drop-shadow-glow">
+          <img src="/logo.png" alt="V19+" className="h-12 object-contain filter drop-shadow-3d" />
+        </Link>
 
         <motion.div
-          className="relative w-full max-w-[420px]"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          initial={{ opacity: 0, scale: 0.8, rotateX: 20 }}
+          animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+          transition={{ duration: 0.8, type: 'spring', bounce: 0.4 }}
+          className="w-full max-w-[440px]"
         >
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-10">
-            <Link to="/" className="inline-flex items-center gap-1">
-              <img src="/logo.png" alt="V19+" className="h-8 mx-auto object-contain" />
-            </Link>
-          </div>
+          <TiltCard depth={10}>
+            <div className="bg-glass-gradient backdrop-blur-2xl border-2 border-white/10 rounded-[2.5rem] p-10 shadow-3d-lift relative overflow-hidden group">
+              <div className="absolute inset-0 bg-v-orange-glow blur-[100px] opacity-0 group-hover:opacity-30 transition-opacity duration-700" />
+              
+              <div className="relative z-10 text-center mb-10">
+                <h2 className="text-4xl font-display font-black text-v-text tracking-wider drop-shadow-md">
+                  {isSignUp ? 'INITIALIZE NODE' : 'SYSTEM UPLINK'}
+                </h2>
+                <p className="text-v-muted mt-2 font-medium">
+                  {isSignUp ? 'Create your spatial profile' : 'Authenticate to continue'}
+                </p>
+              </div>
 
-          {/* Card */}
-          <div className="bg-v-surface border border-v-divider/60 rounded-3xl p-8 shadow-2xl shadow-black/60 backdrop-blur-sm">
-            {/* Header */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-v-text">
-                {isSignUp ? 'Create your account 🚀' : 'Welcome back 👋'}
-              </h2>
-              <p className="text-v-muted mt-1.5 text-sm leading-relaxed">
-                {isSignUp
-                  ? 'Sign up to start streaming unlimited movies and TV shows.'
-                  : 'Sign in to pick up where you left off.'}
-              </p>
-            </div>
+              <div className="relative z-10">
+                <GoogleSignInButton />
+              </div>
 
-            {/* Google sign-in */}
-            <GoogleSignInButton />
+              <div className="flex items-center gap-4 my-8 relative z-10">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white/20" />
+                <span className="text-xs text-v-muted/50 font-bold tracking-widest uppercase">Manual Auth</span>
+                <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white/20" />
+              </div>
 
-            {/* Divider with label */}
-            <div className="flex items-center gap-3 my-5">
-              <div className="h-px flex-1 bg-v-divider" />
-              <span className="text-xs text-v-muted/70 font-medium">or continue with</span>
-              <div className="h-px flex-1 bg-v-divider" />
-            </div>
-
-            {/* Email form */}
-            <form onSubmit={handleEmailAuth} className="space-y-4">
-              {isSignUp && (
-                <div>
-                  <label className="block text-xs font-semibold text-v-text uppercase tracking-wider mb-2">Name</label>
+              <form onSubmit={handleEmailAuth} className="space-y-5 relative z-10">
+                {isSignUp && (
+                  <div className="group/input">
+                    <input
+                      type="text"
+                      required
+                      placeholder="Alias (Name)"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full bg-v-black/50 border border-white/10 focus:border-v-orange rounded-xl px-5 py-4 text-v-text placeholder-v-muted/40 focus:outline-none transition-all focus:shadow-orange-edge"
+                    />
+                  </div>
+                )}
+                <div className="group/input">
                   <input
-                    type="text"
+                    type="email"
                     required
-                    placeholder="Enter your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-v-black/50 border border-v-divider focus:border-v-orange rounded-xl px-4 py-3 text-v-text placeholder-v-muted/50 focus:outline-none transition-colors"
+                    placeholder="Email Address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-v-black/50 border border-white/10 focus:border-v-orange rounded-xl px-5 py-4 text-v-text placeholder-v-muted/40 focus:outline-none transition-all focus:shadow-orange-edge"
                   />
                 </div>
-              )}
-              <div>
-                <label className="block text-xs font-semibold text-v-text uppercase tracking-wider mb-2">Email Address</label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-v-black/50 border border-v-divider focus:border-v-orange rounded-xl px-4 py-3 text-v-text placeholder-v-muted/50 focus:outline-none transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-v-text uppercase tracking-wider mb-2">Password</label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-v-black/50 border border-v-divider focus:border-v-orange rounded-xl px-4 py-3 text-v-text placeholder-v-muted/50 focus:outline-none transition-colors"
-                />
-              </div>
+                <div className="group/input">
+                  <input
+                    type="password"
+                    required
+                    placeholder="Security Key (Password)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-v-black/50 border border-white/10 focus:border-v-orange rounded-xl px-5 py-4 text-v-text placeholder-v-muted/40 focus:outline-none transition-all focus:shadow-orange-edge"
+                  />
+                </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full mt-2 bg-v-orange hover:bg-v-orange/90 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg shadow-v-orange/10 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Processing...' : isSignUp ? 'Create Account' : 'Sign In'}
-              </button>
-            </form>
-
-            {/* Toggle Sign In / Sign Up */}
-            <p className="mt-6 text-center text-sm text-v-muted">
-              {isSignUp ? 'Already have an account?' : 'New to V19+?'}{' '}
-              <button
-                type="button"
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-v-orange hover:text-v-orange/80 transition-colors font-semibold"
-              >
-                {isSignUp ? 'Sign in now' : 'Sign up now'}
-              </button>
-            </p>
-
-            {/* Footer links */}
-            <div className="mt-6 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-px flex-1 bg-v-divider/50" />
-              </div>
-              <p className="text-center text-sm text-v-muted">
-                Just browsing?{' '}
-                <Link
-                  to="/"
-                  className="text-v-orange hover:text-v-orange-light transition-colors font-medium underline underline-offset-4 decoration-v-orange/30 hover:decoration-v-orange"
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full mt-4 bg-v-orange hover:bg-v-orange-deep text-white text-lg font-bold py-4 px-6 rounded-xl transition-all shadow-orange-glow hover:shadow-[0_0_40px_rgba(255,92,0,0.8)] border border-white/20 active:scale-95 flex items-center justify-center gap-2 group/btn disabled:opacity-50"
                 >
-                  Explore without signing in
-                </Link>
-              </p>
+                  {isSubmitting ? 'Processing...' : isSignUp ? 'LINK NODE' : 'CONNECT'}
+                </button>
+              </form>
+
+              <div className="mt-8 text-center relative z-10">
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-sm font-semibold text-v-muted hover:text-v-orange transition-colors"
+                >
+                  {isSignUp ? '< Return to Uplink' : 'Initialize New Node >'}
+                </button>
+              </div>
             </div>
-          </div>
-
-          {/* Trust indicators */}
-          <motion.div
-            className="mt-6 flex items-center justify-center gap-6 text-xs text-v-muted/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 text-v-orange/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Secure sign-in
-            </span>
-            <span className="flex items-center gap-1.5">
-              <svg className="w-3.5 h-3.5 text-v-orange/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Privacy protected
-            </span>
-          </motion.div>
-
-          {/* Terms */}
-          <p className="mt-4 text-center text-[11px] text-v-muted/40 leading-relaxed">
-            By signing in you agree to our{' '}
-            <span className="hover:text-v-muted cursor-pointer transition-colors">Terms of Service</span>{' '}
-            and{' '}
-            <span className="hover:text-v-muted cursor-pointer transition-colors">Privacy Policy</span>.
-          </p>
+          </TiltCard>
         </motion.div>
       </div>
     </div>

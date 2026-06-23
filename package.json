@@ -14,7 +14,7 @@
     "dev:setup": "npm run dev:setup --workspace=apps/backend",
     "dev:docker": "docker-compose up --build",
     "down": "docker-compose down",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace=packages/types && npm run build --workspace=packages/utils && npm run build --workspaces --if-present",
     "mobile:init": "npm run mobile:init --workspace=apps/web",
     "mobile:sync": "npm run mobile:sync --workspace=apps/web",
     "mobile:android": "npm run cap:android --workspace=apps/web"
