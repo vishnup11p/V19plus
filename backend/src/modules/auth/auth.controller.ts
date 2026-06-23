@@ -46,18 +46,18 @@ export async function googleCallback(req: Request, res: Response) {
 export async function googleAuth(req: AuthRequest, res: Response) {
   const result = await authService.googleAuth(req.body.credential);
   res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
-  res.json({ user: result.user, accessToken: result.accessToken });
+  res.json({ user: result.user, accessToken: result.accessToken, refreshToken: result.refreshToken });
 }
 
 export async function refresh(req: AuthRequest, res: Response) {
-  const refreshToken = req.cookies.refreshToken;
+  const refreshToken = req.body.refreshToken || req.cookies.refreshToken;
   if (!refreshToken) {
     res.status(401).json({ error: 'Refresh token required' });
     return;
   }
   const result = await authService.refresh(refreshToken);
   res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
-  res.json({ accessToken: result.accessToken });
+  res.json({ accessToken: result.accessToken, refreshToken: result.refreshToken });
 }
 
 export async function logout(req: AuthRequest, res: Response) {
@@ -78,12 +78,12 @@ export async function register(req: Request, res: Response) {
   const { email, password, name } = req.body;
   const result = await authService.register(email, password, name);
   res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
-  res.status(201).json({ user: result.user, accessToken: result.accessToken });
+  res.status(201).json({ user: result.user, accessToken: result.accessToken, refreshToken: result.refreshToken });
 }
 
 export async function login(req: Request, res: Response) {
   const { email, password } = req.body;
   const result = await authService.emailLogin(email, password);
   res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
-  res.json({ user: result.user, accessToken: result.accessToken });
+  res.json({ user: result.user, accessToken: result.accessToken, refreshToken: result.refreshToken });
 }

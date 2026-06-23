@@ -69,44 +69,19 @@ export function GoogleSignInButton() {
 
   return (
     <div className="w-full space-y-3">
-      {useRedirect ? (
-        <motion.button
-          type="button"
-          onClick={handleRedirectSignIn}
-          disabled={redirecting}
-          whileHover={{ scale: redirecting ? 1 : 1.01 }}
-          whileTap={{ scale: redirecting ? 1 : 0.98 }}
-          className="w-full flex items-center justify-center gap-3 py-3.5 px-5 bg-white hover:bg-gray-50 text-gray-800 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-60 shadow-md shadow-black/30 hover:shadow-lg hover:shadow-black/40"
-        >
-          {redirecting ? (
-            <>
-              <svg className="w-4 h-4 animate-spin text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Redirecting to Google…
-            </>
-          ) : (
-            <>
-              <GoogleColorIcon />
-              Continue with Google
-            </>
-          )}
-        </motion.button>
-      ) : (
-        <div className="w-full flex justify-center [&>div]:w-full">
-          <GoogleLogin
-            onSuccess={handleOneTapSuccess}
-            onError={() =>
-              toast.error('Google sign-in failed — check OAuth client in Google Cloud Console')
-            }
-            theme="filled_black"
-            shape="rectangular"
-            text="continue_with"
-            size="large"
-            width="360"
-          />
-        </div>
-      )}
+      <div className="w-full flex justify-center [&>div]:w-full">
+        <GoogleLogin
+          onSuccess={handleOneTapSuccess}
+          onError={() =>
+            toast.error('Google sign-in failed — check OAuth client in Google Cloud Console')
+          }
+          theme="filled_black"
+          shape="rectangular"
+          text="continue_with"
+          size="large"
+          width="360"
+        />
+      </div>
 
       {!googleStatus?.hasClientSecret && (
         <p className="text-[11px] text-amber-400/80 text-center bg-amber-500/8 border border-amber-500/20 rounded-lg px-3 py-2 leading-relaxed">
