@@ -43,6 +43,19 @@ export function Login() {
 
     if (google === 'success') {
       handledRef.current = true;
+      // Tokens may be embedded directly in the URL (cross-origin OAuth redirect fix)
+      const accessToken = searchParams.get('at');
+      const refreshToken = searchParams.get('rt');
+      // Hydrate auth store immediately if tokens are present in URL
+      if (accessToken) {
+        useAuthStore.setState((s) => ({
+          ...s,
+          accessToken,
+          refreshToken: refreshToken ?? s.refreshToken,
+        }));
+      }
+      // Clean the URL before fetching profile
+      setSearchParams({}, { replace: true });
       fetchMe().then((success) => {
         if (success) {
           toast.success('Uplink Established! 🎉');
@@ -50,7 +63,6 @@ export function Login() {
           navigate(returnUrl, { replace: true });
         } else {
           toast.error('Sign-in succeeded but session lost.');
-          setSearchParams({}, { replace: true });
         }
       });
     }

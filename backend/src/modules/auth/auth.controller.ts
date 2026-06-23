@@ -36,7 +36,14 @@ export async function googleCallback(req: Request, res: Response) {
   try {
     const result = await authService.googleOAuthCallback(code);
     res.cookie('refreshToken', result.refreshToken, REFRESH_COOKIE_OPTIONS);
-    res.redirect(`${frontend}/login?google=success`);
+    // Pass tokens in the URL so the Vercel frontend can hydrate auth state
+    // without relying on cross-origin cookies (Render → Vercel).
+    const params = new URLSearchParams({
+      google: 'success',
+      at: result.accessToken,
+      rt: result.refreshToken,
+    });
+    res.redirect(`${frontend}/login?${params.toString()}`);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Google sign-in failed';
     res.redirect(`${frontend}/login?error=${encodeURIComponent(msg)}`);
