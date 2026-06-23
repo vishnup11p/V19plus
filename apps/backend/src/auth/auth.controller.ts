@@ -1,0 +1,87 @@
+import { Controller, Post, Body, Res, Req, UseGuards, Get } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { Response, Request } from 'express';
+import { AuthGuard } from './auth.guard';
+import { CurrentUser } from './current-user.decorator';
+import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private authService: AuthService) {}
+
+  @Post('signup')
+  async signup(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+    const user = await this.authService.signup(body.email, body.password, body.name);
+    const { accessToken, refreshToken } = await this.authService.login(body.email, body.password, body.deviceId || 'unknown');
+    this.authService.setCookies(res, accessToken, refreshToken);
+    return { user };
+  }
+
+  @Post('login')
+  async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+    const { user, accessToken, refreshToken } = await this.authService.login(body.email, body.password, body.deviceId || 'unknown');
+    this.authService.setCookies(res, accessToken, refreshToken);
+    return { user };
+  }
+
+  @Post('refresh')
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: any) {
+    const refreshToken = req.cookies['refreshToken'];
+    if (!refreshToken) {
+      return { success: false };
+    }
+    const { accessToken } = await this.authService.refresh(refreshToken, body.deviceId || 'unknown');
+    
+    // Set the new access token cookie
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000,
+    });
+    return { success: true };
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('logout')
+  async logout(@CurrentUser() user: any, @Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: any) {
+    await this.authService.logout(user.id, body.deviceId || 'unknown');
+    this.authService.clearCookies(res);
+    return { success: true };
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('me')
+  async me(@CurrentUser() user: any) {
+    // Return full user detail from DB
+    return this.authService.getMe(user.id);
+  }
+
+  @Get('google')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleAuth(@Req() req: Request) {}
+
+  @Get('google/callback')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleAuthRedirect(@Req() req: any, @Res({ passthrough: true }) res: Response) {
+    const user = req.user;
+    // We need to generate token for this user
+    const payload = { sub: user.id, role: user.role };
+    const accessToken = this.authService['jwtService'].sign(payload, {
+      secret: process.env.JWT_ACCESS_SECRET || 'secret',
+      expiresIn: '15m',
+    });
+    const refreshToken = this.authService['jwtService'].sign(payload, {
+      secret: process.env.JWT_REFRESH_SECRET || 'refresh_secret',
+      expiresIn: '7d',
+    });
+
+    const deviceId = 'google-oauth-login';
+    await this.authService['redisService'].set(`refresh_token:${user.id}:${deviceId}`, refreshToken, 60 * 60 * 24 * 7);
+
+    this.authService.setCookies(res, accessToken, refreshToken);
+    
+    // Redirect back to frontend
+    res.redirect(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/browse');
+  }
+}
