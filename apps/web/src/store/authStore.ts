@@ -21,7 +21,7 @@ interface AuthState {
 }
 
 // Generate or retrieve a persistent device ID for this browser
-const getDeviceInfo = () => {
+export const getDeviceInfo = () => {
   if (typeof window === 'undefined') return {};
   
   let deviceId = localStorage.getItem('v19_device_id');
@@ -89,7 +89,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refresh: async () => {
-        const { data } = await authApi.refresh();
+        const { data } = await authApi.refresh(getDeviceInfo());
         set({ accessToken: data.accessToken });
       },
 
@@ -100,7 +100,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           let token = get().accessToken;
           if (!token) {
-            const { data: refreshData } = await authApi.refresh();
+            const { data: refreshData } = await authApi.refresh(getDeviceInfo());
             token = refreshData.accessToken;
             set({ accessToken: token });
           }

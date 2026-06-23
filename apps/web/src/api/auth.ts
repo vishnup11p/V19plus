@@ -34,6 +34,6 @@ export const authApi = {
   adminLogin: (email: string, password: string, deviceInfo?: any) =>
     api.post<{ user: User; accessToken: string }>('/admin/auth/login', { email, password, ...deviceInfo }),
   logout: () => api.post('/auth/logout'),
-  refresh: () => api.post<{ accessToken: string }>('/auth/refresh'),
+  refresh: (deviceInfo?: any) => api.post<{ accessToken: string }>('/auth/refresh', deviceInfo || {}),
   me: () => api.get<User>('/auth/me'),
 };

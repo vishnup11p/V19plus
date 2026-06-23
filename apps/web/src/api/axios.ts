@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore, getDeviceInfo } from '../store/authStore';
 
 const getBaseURL = () => {
   if (Capacitor.isNativePlatform()) {
@@ -90,7 +90,7 @@ api.interceptors.response.use(
       try {
         const { data } = await axios.post(
           `${getBaseURL()}/auth/refresh`,
-          {},
+          getDeviceInfo(),
           { withCredentials: true }
         );
         useAuthStore.getState().setAccessToken(data.accessToken);
