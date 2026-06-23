@@ -49,6 +49,20 @@ export function AdminContent() {
     onError: () => toast.error('Failed to save content'),
   });
 
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData();
+      formData.append('video', file);
+      formData.append('contentId', editing?.id || 'new'); // We should really create the content first, then upload, but this is a simplified demo
+      return adminApi.uploadVideo(formData);
+    },
+    onSuccess: (res) => {
+      toast.success('Video upload started! Processing in background...');
+      // Normally we'd poll or use websockets, but here we just show a message
+    },
+    onError: () => toast.error('Failed to upload video'),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteContent(id),
     onSuccess: () => {
@@ -131,7 +145,28 @@ export function AdminContent() {
           <Input label="Rating" value={form.rating} onChange={(v) => setForm({ ...form, rating: v })} />
           <Input label="Thumbnail URL" value={form.thumbnailUrl} onChange={(v) => setForm({ ...form, thumbnailUrl: v })} />
           <Input label="Backdrop URL" value={form.backdropUrl} onChange={(v) => setForm({ ...form, backdropUrl: v })} />
-          <Input label="Video URL" value={form.videoUrl} onChange={(v) => setForm({ ...form, videoUrl: v })} />
+          
+          <div className="md:col-span-2">
+            <label className="text-sm text-v-muted">Video File (MP4 to HLS Transcoding)</label>
+            <div className="flex gap-4 items-center mt-1">
+              <input 
+                type="file" 
+                accept="video/mp4,video/x-m4v,video/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0] && editing) {
+                    uploadMutation.mutate(e.target.files[0]);
+                  } else if (!editing) {
+                    toast.error('Please create the content first, then edit it to upload a video.');
+                  }
+                }}
+                className="flex-1 bg-v-black border border-v-divider rounded-lg px-4 py-2 text-sm text-v-muted file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-v-orange file:text-white hover:file:bg-orange-600"
+              />
+              {uploadMutation.isPending && <span className="text-v-orange text-sm font-bold animate-pulse">Uploading...</span>}
+            </div>
+            <p className="text-xs text-v-muted mt-2">Or provide direct URL:</p>
+            <Input label="" value={form.videoUrl} onChange={(v) => setForm({ ...form, videoUrl: v })} placeholder="https://..." />
+          </div>
+
           <div className="flex gap-4 items-center md:col-span-2">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} />

@@ -5,6 +5,7 @@ import app from './app';
 import { logger } from './utils/logger';
 import { verifyAccessToken } from './utils/jwt';
 import { getGoogleConfigStatus } from './config/google';
+import './modules/video-process/video-process.worker'; // Initialize FFmpeg worker
 
 const PORT = process.env.PORT || 4000;
 

@@ -16,6 +16,8 @@ import settingsRoutes from './modules/settings/settings.routes';
 import categoriesRoutes from './modules/categories/categories.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import adminAuthRoutes from './modules/admin/admin.auth.routes';
+import videoProcessRoutes from './modules/video-process/video-process.routes';
+import path from 'path';
 
 const app = express();
 
@@ -86,6 +88,10 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/video-process', videoProcessRoutes);
+
+// Serve uploads directory for HLS videos and images
+app.use('/uploads', express.static(path.join(__dirname, '../../uploads')));
 
 // Global error handler
 app.use(errorHandler);

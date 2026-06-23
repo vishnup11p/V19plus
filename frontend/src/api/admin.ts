@@ -49,4 +49,7 @@ export const adminApi = {
   createContent: (data: Partial<AdminContent>) => api.post('/admin/content', data),
   updateContent: (id: string, data: Partial<AdminContent>) => api.put(`/admin/content/${id}`, data),
   deleteContent: (id: string) => api.delete(`/admin/content/${id}`),
+  uploadVideo: (data: FormData) => api.post('/video-process/upload', data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
 };
