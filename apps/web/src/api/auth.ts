@@ -26,13 +26,13 @@ export const authApi = {
   checkEmail: (email: string) =>
     api.post<{ exists: boolean }>('/auth/check-email', { email }),
   login: (email: string, password?: string, passwordHash?: string, deviceInfo?: any) =>
-    api.post<{ user: User; accessToken: string }>('/auth/login', { email, password, passwordHash, ...deviceInfo }),
+    api.post<{ user: User; accessToken: string; refreshToken: string }>('/auth/login', { email, password, passwordHash, ...deviceInfo }),
   signup: (email: string, password?: string, passwordHash?: string, name?: string, deviceInfo?: any) =>
-    api.post<{ user: User; accessToken: string }>('/auth/signup', { email, password, passwordHash, name, ...deviceInfo }),
+    api.post<{ user: User; accessToken: string; refreshToken: string }>('/auth/signup', { email, password, passwordHash, name, ...deviceInfo }),
   supabaseLogin: (accessToken: string) =>
     api.post<{ user: User; accessToken: string }>('/auth/supabase', { accessToken }),
   adminLogin: (email: string, password: string, deviceInfo?: any) =>
-    api.post<{ user: User; accessToken: string }>('/admin/auth/login', { email, password, ...deviceInfo }),
+    api.post<{ user: User; accessToken: string; refreshToken: string }>('/admin/auth/login', { email, password, ...deviceInfo }),
   logout: () => api.post('/auth/logout'),
   refresh: (deviceInfo?: any) => api.post<{ accessToken: string }>('/auth/refresh', deviceInfo || {}),
   me: () => api.get<User>('/auth/me'),

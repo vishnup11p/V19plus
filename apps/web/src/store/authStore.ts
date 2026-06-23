@@ -5,6 +5,7 @@ import { authApi, User } from '../api/auth';
 interface AuthState {
   user: User | null;
   accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   _initialized: boolean;
@@ -42,6 +43,7 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: true,
       _initialized: false,
@@ -62,17 +64,17 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email, password) => {
         const { data } = await authApi.login(email, password, undefined, getDeviceInfo());
-        set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false, _initialized: true });
+        set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, _initialized: true });
       },
 
       signup: async (email, password, name) => {
         const { data } = await authApi.signup(email, password, undefined, name, getDeviceInfo());
-        set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false, _initialized: true });
+        set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, _initialized: true });
       },
 
       adminLogin: async (email, password) => {
         const { data } = await authApi.adminLogin(email, password, getDeviceInfo());
-        set({ user: data.user, accessToken: data.accessToken, isAuthenticated: true, isLoading: false, _initialized: true });
+        set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, _initialized: true });
       },
 
       logout: async () => {
@@ -85,11 +87,11 @@ export const useAuthStore = create<AuthState>()(
           sessionStorage.removeItem('v19_active_profile');
           document.cookie = 'v19_active_profile_id=; Max-Age=0; path=/';
         }
-        set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
+        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
       },
 
       refresh: async () => {
-        const { data } = await authApi.refresh(getDeviceInfo());
+        const { data } = await authApi.refresh({ ...getDeviceInfo(), refreshToken: get().refreshToken });
         set({ accessToken: data.accessToken });
       },
 
@@ -100,14 +102,14 @@ export const useAuthStore = create<AuthState>()(
         try {
           let token = get().accessToken;
           if (!token) {
-            const { data: refreshData } = await authApi.refresh(getDeviceInfo());
+            const { data: refreshData } = await authApi.refresh({ ...getDeviceInfo(), refreshToken: get().refreshToken });
             token = refreshData.accessToken;
             set({ accessToken: token });
           }
           const { data } = await authApi.me();
           set({ user: data, isAuthenticated: true, isLoading: false, _initialized: true });
         } catch {
-          set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
+          set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
         }
       },
     }),
@@ -116,6 +118,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated
       }),
     }
