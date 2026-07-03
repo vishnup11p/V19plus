@@ -42,7 +42,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         err?.stack,
       );
       
-      if (process.env.NODE_ENV !== 'production') {
+      if (process.env.NODE_ENV !== 'production' || true) {
         message = err?.message || String(exception);
         error = err?.name || 'Error';
       }
