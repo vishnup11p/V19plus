@@ -4,7 +4,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirebaseService } from '../firebase/firebase.service';
 import { SettingsService } from '../settings/settings.service';
 import { ContentService } from '../content/content.service';
 import { CreateContentDto } from '../content/dto/create-content.dto';
@@ -17,19 +17,24 @@ function slugify(name: string) {
 @Injectable()
 export class AdminService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly firebase: FirebaseService,
     private readonly settingsService: SettingsService,
     private readonly contentService: ContentService,
   ) {}
 
   async getDashboard() {
-    const [users, content, categories, watchHistory] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.content.count(),
-      this.prisma.category.count(),
-      this.prisma.watchHistory.count(),
+    const [usersSnap, contentSnap, categoriesSnap, watchHistorySnap] = await Promise.all([
+      this.firebase.firestore.collection('users').count().get(),
+      this.firebase.firestore.collection('content').count().get(),
+      this.firebase.firestore.collection('categories').count().get(),
+      this.firebase.firestore.collection('watchHistory').count().get(),
     ]);
-    return { users, content, categories, watchHistory };
+    return { 
+      users: usersSnap.data().count, 
+      content: contentSnap.data().count, 
+      categories: categoriesSnap.data().count, 
+      watchHistory: watchHistorySnap.data().count 
+    };
   }
 
   getSettings() {
@@ -40,89 +45,101 @@ export class AdminService {
     return this.settingsService.updateSettings(data);
   }
 
-  listCategories() {
-    return this.prisma.category.findMany({ orderBy: { sortOrder: 'asc' } });
+  async listCategories() {
+    const snap = await this.firebase.firestore.collection('categories').orderBy('sortOrder', 'asc').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
   async createCategory(data: { name: string; icon?: string; sortOrder?: number; isActive?: boolean }) {
     const slug = slugify(data.name);
-    const existing = await this.prisma.category.findFirst({
-      where: { OR: [{ name: data.name }, { slug }] },
-    });
-    if (existing) throw new ConflictException('Category already exists');
+    
+    const snap1 = await this.firebase.firestore.collection('categories').where('name', '==', data.name).limit(1).get();
+    const snap2 = await this.firebase.firestore.collection('categories').where('slug', '==', slug).limit(1).get();
+    
+    if (!snap1.empty || !snap2.empty) throw new ConflictException('Category already exists');
 
-    return this.prisma.category.create({
-      data: {
-        name: data.name,
-        slug,
-        icon: data.icon || '🎬',
-        sortOrder: data.sortOrder ?? 0,
-        isActive: data.isActive ?? true,
-      },
-    });
+    const docRef = this.firebase.firestore.collection('categories').doc();
+    const cat = {
+      id: docRef.id,
+      name: data.name,
+      slug,
+      icon: data.icon || 'movie',
+      sortOrder: data.sortOrder ?? 0,
+      isActive: data.isActive ?? true,
+      createdAt: new Date(),
+    };
+    await docRef.set(cat);
+    return cat;
   }
 
   async updateCategory(
     id: string,
     data: { name?: string; icon?: string; sortOrder?: number; isActive?: boolean },
   ) {
-    const cat = await this.prisma.category.findUnique({ where: { id } });
-    if (!cat) throw new NotFoundException('Category not found');
+    const docRef = this.firebase.firestore.collection('categories').doc(id);
+    const cat = await docRef.get();
+    if (!cat.exists) throw new NotFoundException('Category not found');
 
     const updateData: Record<string, unknown> = { ...data };
     if (data.name) updateData.slug = slugify(data.name);
 
-    return this.prisma.category.update({ where: { id }, data: updateData });
+    await docRef.update(updateData);
+    const updated = await docRef.get();
+    return { id: updated.id, ...updated.data() };
   }
 
   async removeCategory(id: string) {
-    const cat = await this.prisma.category.findUnique({ where: { id } });
-    if (!cat) throw new NotFoundException('Category not found');
-    await this.prisma.category.delete({ where: { id } });
+    const docRef = this.firebase.firestore.collection('categories').doc(id);
+    const cat = await docRef.get();
+    if (!cat.exists) throw new NotFoundException('Category not found');
+    await docRef.delete();
     return { message: 'Category deleted' };
   }
 
-  listUsers() {
-    return this.prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        avatarUrl: true,
-        createdAt: true,
-        subscription: { select: { plan: true, status: true } },
-      },
-    });
+  async listUsers() {
+    const snap = await this.firebase.firestore.collection('users').orderBy('createdAt', 'desc').get();
+    let users = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    
+    for (let u of users) {
+      const subSnap = await this.firebase.firestore.collection('subscriptions').where('userId', '==', u.id).limit(1).get();
+      if (!subSnap.empty) {
+        u.subscription = subSnap.docs[0].data();
+      }
+    }
+    
+    return users.map(u => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      role: u.role,
+      avatarUrl: u.avatarUrl,
+      createdAt: u.createdAt?.toDate(),
+      subscription: u.subscription ? { plan: u.subscription.plan, status: u.subscription.status } : null,
+    }));
   }
 
   async updateUserRole(userId: string, role: string) {
     if (!['USER', 'ADMIN'].includes(role)) {
       throw new BadRequestException('Invalid role');
     }
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { role },
-      select: { id: true, email: true, role: true },
-    });
+    const docRef = this.firebase.firestore.collection('users').doc(userId);
+    await docRef.update({ role });
+    const u = await docRef.get();
+    return { id: u.id, email: u.data()!.email, role: u.data()!.role };
   }
 
   async listContent() {
-    const items = await this.prisma.content.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        cast: { take: 2 },
-        genres: { include: { genre: true } },
-        _count: { select: { seasons: true } },
-      },
+    const snap = await this.firebase.firestore.collection('content').orderBy('createdAt', 'desc').get();
+    return snap.docs.map(d => {
+      const c = d.data() as any;
+      return {
+        id: d.id,
+        ...c,
+        genre: c.genres || c.genre || [],
+        genres: undefined,
+        _count: { seasons: c.seasons?.length || 0 }
+      };
     });
-
-    return items.map((c) => ({
-      ...c,
-      genre: c.genres ? c.genres.map((g) => g.genre.name) : [],
-      genres: undefined,
-    }));
   }
 
   createContent(data: CreateContentDto) {

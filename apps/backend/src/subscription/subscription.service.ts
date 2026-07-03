@@ -1,5 +1,5 @@
-﻿import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { FirebaseService } from '../firebase/firebase.service';
 import Stripe from 'stripe';
 import * as crypto from 'crypto';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -45,7 +45,7 @@ export class SubscriptionService {
   private readonly isProduction = process.env.NODE_ENV === 'production';
   private readonly frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly firebase: FirebaseService) {
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (stripeKey && stripeKey !== 'sk_test_xxx' && stripeKey !== 'sk_test_placeholder') {
       this.stripe = new Stripe(stripeKey, {
@@ -81,12 +81,14 @@ export class SubscriptionService {
   }
 
   async getCurrentSubscription(userId: string) {
-    return this.prisma.subscription.findUnique({ where: { userId } });
+    const doc = await this.firebase.firestore.collection('subscriptions').doc(userId).get();
+    return doc.exists ? { id: doc.id, ...doc.data() } : null;
   }
 
   async createCheckoutSession(userId: string, plan: PlanId) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
+    const userDoc = await this.firebase.firestore.collection('users').doc(userId).get();
+    if (!userDoc.exists) throw new NotFoundException('User not found');
+    const user = { id: userDoc.id, ...userDoc.data() } as any;
 
     const planConfig = PLANS.find((p) => p.id === plan);
     if (!planConfig) throw new BadRequestException('Invalid plan');
@@ -98,33 +100,24 @@ export class SubscriptionService {
       // Dev-only simulation
       const now = new Date();
       const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      await this.prisma.subscription.upsert({
-        where: { userId },
-        create: {
-          userId,
-          plan,
-          status: 'ACTIVE',
-          currentPeriodStart: now,
-          currentPeriodEnd: periodEnd,
-        },
-        update: {
-          plan,
-          status: 'ACTIVE',
-          currentPeriodStart: now,
-          currentPeriodEnd: periodEnd,
-        },
-      });
+      
+      await this.firebase.firestore.collection('subscriptions').doc(userId).set({
+        userId,
+        plan,
+        status: 'ACTIVE',
+        currentPeriodStart: now,
+        currentPeriodEnd: periodEnd,
+      }, { merge: true });
 
       // Write a simulated successful payment record
-      await this.prisma.payment.create({
-        data: {
-          userId,
-          amount: planConfig.price,
-          currency: planConfig.currency,
-          status: 'SUCCESS',
-          provider: 'STRIPE_SIMULATION',
-          transactionId: `txn_sim_${Math.random().toString(36).substring(2, 11)}`,
-        },
+      await this.firebase.firestore.collection('payments').add({
+        userId,
+        amount: planConfig.price,
+        currency: planConfig.currency,
+        status: 'SUCCESS',
+        provider: 'STRIPE_SIMULATION',
+        transactionId: `txn_sim_${Math.random().toString(36).substring(2, 11)}`,
+        createdAt: new Date(),
       });
 
       return { url: `${this.frontendUrl}/subscription?success=true`, demo: true };
@@ -132,8 +125,8 @@ export class SubscriptionService {
 
     // Generate real Stripe Session
     try {
-      let subscription = await this.prisma.subscription.findUnique({ where: { userId } });
-      let customerId = subscription?.stripeCustomerId;
+      const subDoc = await this.firebase.firestore.collection('subscriptions').doc(userId).get();
+      let customerId = subDoc.exists ? subDoc.data()?.stripeCustomerId : null;
 
       if (!customerId) {
         const customer = await this.stripe.customers.create({ email: user.email, name: user.name });
@@ -166,8 +159,9 @@ export class SubscriptionService {
   }
 
   async cancelSubscription(userId: string) {
-    const subscription = await this.prisma.subscription.findUnique({ where: { userId } });
-    if (!subscription) throw new NotFoundException('No active subscription');
+    const subDoc = await this.firebase.firestore.collection('subscriptions').doc(userId).get();
+    if (!subDoc.exists) throw new NotFoundException('No active subscription');
+    const subscription = subDoc.data()!;
 
     if (subscription.stripeSubscriptionId && this.stripe) {
       try {
@@ -177,10 +171,7 @@ export class SubscriptionService {
       }
     }
 
-    await this.prisma.subscription.update({
-      where: { userId },
-      data: { status: 'CANCELLED' },
-    });
+    await this.firebase.firestore.collection('subscriptions').doc(userId).update({ status: 'CANCELLED' });
 
     return { message: 'Subscription cancelled successfully' };
   }
@@ -207,46 +198,35 @@ export class SubscriptionService {
         const { userId, plan } = session.metadata;
         const now = new Date();
         const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        await this.prisma.subscription.upsert({
-          where: { userId },
-          create: {
-            userId,
-            plan,
-            status: 'ACTIVE',
-            stripeCustomerId: session.customer,
-            stripeSubscriptionId: session.subscription,
-            currentPeriodStart: now,
-            currentPeriodEnd: periodEnd,
-          },
-          update: {
-            plan,
-            status: 'ACTIVE',
-            stripeCustomerId: session.customer,
-            stripeSubscriptionId: session.subscription,
-            currentPeriodStart: now,
-            currentPeriodEnd: periodEnd,
-          },
-        });
+        
+        await this.firebase.firestore.collection('subscriptions').doc(userId).set({
+          userId,
+          plan,
+          status: 'ACTIVE',
+          stripeCustomerId: session.customer,
+          stripeSubscriptionId: session.subscription,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+        }, { merge: true });
 
         // Save real payment details
-        await this.prisma.payment.create({
-          data: {
-            userId,
-            amount: session.amount_total ? session.amount_total / 100 : 0,
-            currency: session.currency || 'inr',
-            status: 'SUCCESS',
-            provider: 'STRIPE',
-            transactionId: session.id,
-          },
+        await this.firebase.firestore.collection('payments').add({
+          userId,
+          amount: session.amount_total ? session.amount_total / 100 : 0,
+          currency: session.currency || 'inr',
+          status: 'SUCCESS',
+          provider: 'STRIPE',
+          transactionId: session.id,
+          createdAt: new Date(),
         });
         break;
       }
       case 'customer.subscription.deleted': {
         const sub = event.data.object as any;
-        await this.prisma.subscription.updateMany({
-          where: { stripeSubscriptionId: sub.id },
-          data: { status: 'CANCELLED' },
-        });
+        const snap = await this.firebase.firestore.collection('subscriptions').where('stripeSubscriptionId', '==', sub.id).get();
+        if (!snap.empty) {
+          await snap.docs[0].ref.update({ status: 'CANCELLED' });
+        }
         break;
       }
     }
@@ -304,34 +284,26 @@ export class SubscriptionService {
     }
     const now = new Date();
     const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    await this.prisma.subscription.upsert({
-      where: { userId },
-      create: {
-        userId,
-        plan: data.plan,
-        status: 'ACTIVE',
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-      },
-      update: {
-        plan: data.plan,
-        status: 'ACTIVE',
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
-      },
-    });
+    
+    await this.firebase.firestore.collection('subscriptions').doc(userId).set({
+      userId,
+      plan: data.plan,
+      status: 'ACTIVE',
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+    }, { merge: true });
 
-    await this.prisma.payment.create({
-      data: {
-        userId,
-        amount: planConfig.price,
-        currency: 'INR',
-        status: 'SUCCESS',
-        provider: 'RAZORPAY',
-        transactionId: data.paymentId,
-      },
+    await this.firebase.firestore.collection('payments').add({
+      userId,
+      amount: planConfig.price,
+      currency: 'INR',
+      status: 'SUCCESS',
+      provider: 'RAZORPAY',
+      transactionId: data.paymentId,
+      createdAt: new Date(),
     });
 
     return { success: true };
   }
 }
+

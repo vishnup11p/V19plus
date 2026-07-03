@@ -1,21 +1,27 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirebaseService } from '../firebase/firebase.service';
 
 @Injectable()
 export class PaymentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly firebase: FirebaseService) {}
 
   async listPayments(userId: string) {
-    return this.prisma.payment.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const snap = await this.firebase.firestore.collection('payments')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .get();
+      
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
   async getRevenueAnalytics() {
-    const payments = await this.prisma.payment.findMany({
-      where: { status: 'SUCCESS' },
-      select: { amount: true, createdAt: true },
+    const snap = await this.firebase.firestore.collection('payments')
+      .where('status', '==', 'SUCCESS')
+      .get();
+
+    const payments = snap.docs.map(d => {
+      const data = d.data();
+      return { amount: data.amount || 0, createdAt: data.createdAt?.toDate() || new Date() };
     });
 
     const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0);
@@ -27,3 +33,4 @@ export class PaymentService {
     };
   }
 }
+

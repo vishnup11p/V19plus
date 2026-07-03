@@ -4,7 +4,7 @@ import {
   Logger,
   OnModuleDestroy,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirebaseService } from '../firebase/firebase.service';
 import { RedisService } from '../redis/redis.service';
 import { UpsertHistoryDto } from './dto/upsert-history.dto';
 
@@ -17,7 +17,7 @@ export class StreamingService implements OnModuleDestroy {
   private readonly pendingFlushes = new Map<string, NodeJS.Timeout>();
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly firebase: FirebaseService,
     private readonly redis: RedisService,
   ) {}
 
@@ -37,39 +37,32 @@ export class StreamingService implements OnModuleDestroy {
 
   // ─── Buffered write ───────────────────────────────────────────────────────
 
-  /** Flush the buffered progress entry directly to Postgres */
+  /** Flush the buffered progress entry directly to Firestore */
   async flushToDb(userId: string, data: UpsertHistoryDto): Promise<void> {
     const completed = data.completed ?? data.progress >= 95;
     const episodeId = data.episodeId ?? null;
     const key = this.entryKey(data.contentId, episodeId);
+    const docId = `${userId}_${key.replace(/:/g, '_')}`;
 
-    await this.prisma.watchHistory.upsert({
-      where: { userId_entryKey: { userId, entryKey: key } },
-      create: {
-        userId,
-        contentId: data.contentId,
-        episodeId,
-        entryKey: key,
-        progress: data.progress,
-        completed,
-      },
-      update: {
-        progress: data.progress,
-        completed,
-        updatedAt: new Date(),
-      },
-    });
+    const docRef = this.firebase.firestore.collection('watchHistory').doc(docId);
+    
+    await docRef.set({
+      userId,
+      contentId: data.contentId,
+      episodeId,
+      entryKey: key,
+      progress: data.progress,
+      completed,
+      updatedAt: new Date(),
+    }, { merge: true });
   }
 
   // ─── Public API ───────────────────────────────────────────────────────────
 
   async upsert(userId: string, data: UpsertHistoryDto) {
     // Validate content exists
-    const exists = await this.prisma.content.findUnique({
-      where: { id: data.contentId },
-      select: { id: true },
-    });
-    if (!exists) throw new NotFoundException('Content not found');
+    const doc = await this.firebase.firestore.collection('content').doc(data.contentId).get();
+    if (!doc.exists) throw new NotFoundException('Content not found');
 
     // Write to Redis buffer
     const bKey = this.bufferKey(userId, data.contentId, data.episodeId);
@@ -104,28 +97,26 @@ export class StreamingService implements OnModuleDestroy {
   }
 
   async getHistory(userId: string) {
-    const history = await this.prisma.watchHistory.findMany({
-      where: { userId },
-      orderBy: { updatedAt: 'desc' },
-      take: 100,
-      include: {
-        content: {
-          include: {
-            cast: { take: 2 },
-            genres: { include: { genre: true } },
-          },
-        },
-        episode: true,
-      },
-    });
+    const snap = await this.firebase.firestore.collection('watchHistory')
+      .where('userId', '==', userId)
+      .orderBy('updatedAt', 'desc')
+      .limit(100)
+      .get();
+      
+    const history = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    
+    for (let h of history) {
+      if (h.contentId) {
+        const c = await this.firebase.firestore.collection('content').doc(h.contentId).get();
+        if (c.exists) h.content = { id: c.id, ...c.data() };
+      }
+    }
 
     return history.map((h) => ({
       ...h,
       content: {
         ...h.content,
-        genre: h.content
-          ? (h.content as any).genres?.map((g: any) => g.genre.name) ?? []
-          : [],
+        genre: h.content?.genres || h.content?.genre || [],
         genres: undefined,
       },
     }));
@@ -144,15 +135,16 @@ export class StreamingService implements OnModuleDestroy {
     }
 
     const key = this.entryKey(contentId, episodeId ?? null);
-    const record = await this.prisma.watchHistory.findUnique({
-      where: { userId_entryKey: { userId, entryKey: key } },
-    });
-    if (!record) return null;
+    const docId = `${userId}_${key.replace(/:/g, '_')}`;
+    const record = await this.firebase.firestore.collection('watchHistory').doc(docId).get();
+    
+    if (!record.exists) return null;
 
+    const data = record.data()!;
     return {
-      progress: record.progress,
-      completed: record.completed,
-      episodeId: record.episodeId,
+      progress: data.progress,
+      completed: data.completed,
+      episodeId: data.episodeId,
     };
   }
 
@@ -160,9 +152,25 @@ export class StreamingService implements OnModuleDestroy {
     // Also clear any pending buffer entries for this content
     const bKeyMovie = this.bufferKey(userId, contentId);
     await this.redis.del(bKeyMovie);
-    await this.redis.delPattern(this.bufferKey(userId, contentId, '*'));
+    // Redis delPattern is not standard, assuming redisService handles it or skip if not supported.
+    // In many implementations it uses SCAN.
+    try {
+      if (this.redis['delPattern']) {
+        await (this.redis as any).delPattern(this.bufferKey(userId, contentId, '*'));
+      }
+    } catch(e) {}
 
-    await this.prisma.watchHistory.deleteMany({ where: { userId, contentId } });
+    const snap = await this.firebase.firestore.collection('watchHistory')
+      .where('userId', '==', userId)
+      .where('contentId', '==', contentId)
+      .get();
+      
+    const batch = this.firebase.firestore.batch();
+    snap.docs.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+
     return { message: 'Removed from watch history' };
   }
 

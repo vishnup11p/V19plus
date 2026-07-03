@@ -5,12 +5,11 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from './auth.guard';
 import { RolesGuard } from './roles.guard';
 import { GoogleStrategy } from './strategies/google.strategy';
-import { PrismaModule } from '../prisma/prisma.module';
+
 import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
-    PrismaModule,
     RedisModule,
     JwtModule.register({}),
   ],

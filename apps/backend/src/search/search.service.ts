@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirebaseService } from '../firebase/firebase.service';
 import { RedisService } from '../redis/redis.service';
 
 @Injectable()
@@ -7,7 +7,7 @@ export class SearchService {
   private readonly logger = new Logger(SearchService.name);
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly firebase: FirebaseService,
     private readonly redis: RedisService,
   ) {}
 
@@ -15,7 +15,7 @@ export class SearchService {
     if (!c) return null;
     return {
       ...c,
-      genre: c.genres ? c.genres.map((g: any) => g.genre.name) : (c.genre ?? []),
+      genre: c.genres || c.genre || [],
       genres: undefined,
     };
   }
@@ -31,23 +31,22 @@ export class SearchService {
     const cached = await this.redis.get<any>(cacheKey);
     if (cached) return cached;
 
-    const items = await this.prisma.content.findMany({
-      where: {
-        isPublished: true,
-        OR: [
-          { title: { contains: q, mode: 'insensitive' } },
-          { description: { contains: q, mode: 'insensitive' } },
-          { cast: { some: { name: { contains: q, mode: 'insensitive' } } } },
-          { genres: { some: { genre: { name: { contains: q, mode: 'insensitive' } } } } },
-        ],
-      },
-      include: {
-        cast: { take: 3 },
-        genres: { include: { genre: true } },
-      },
-      orderBy: [{ imdbScore: 'desc' }, { releaseYear: 'desc' }],
-      take: 40,
+    // Firestore doesn't support full-text search, so we fetch all published and filter in memory.
+    // In a real production app, you would use Algolia or Typesense here.
+    const snap = await this.firebase.firestore.collection('content').where('isPublished', '==', true).get();
+    let items = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    
+    const lowerQ = q.toLowerCase();
+    items = items.filter(item => {
+      const matchTitle = item.title?.toLowerCase().includes(lowerQ);
+      const matchDesc = item.description?.toLowerCase().includes(lowerQ);
+      const matchGenre = (item.genre || []).some((g: string) => g.toLowerCase().includes(lowerQ));
+      const matchCast = (item.cast || []).some((c: any) => c.name?.toLowerCase().includes(lowerQ));
+      return matchTitle || matchDesc || matchGenre || matchCast;
     });
+
+    items.sort((a, b) => (b.imdbScore || 0) - (a.imdbScore || 0));
+    items = items.slice(0, 40);
 
     const results = items.map((item) => this.mapContent(item));
     const response = { results, query: q, total: results.length };
@@ -64,25 +63,17 @@ export class SearchService {
     const cached = await this.redis.get<any[]>(cacheKey);
     if (cached) return cached;
 
-    // Pull only the fields we need, include genre names for tag matching
-    const contents = await this.prisma.content.findMany({
-      where: {
-        isPublished: true,
-        OR: [
-          { title: { contains: q, mode: 'insensitive' } },
-          { genres: { some: { genre: { name: { contains: q, mode: 'insensitive' } } } } },
-        ],
-      },
-      select: {
-        title: true,
-        slug: true,
-        thumbnailUrl: true,
-        type: true,
-        releaseYear: true,
-      },
-      orderBy: { releaseYear: 'desc' },
-      take: 8,
+    const snap = await this.firebase.firestore.collection('content').where('isPublished', '==', true).get();
+    let contents = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+
+    contents = contents.filter(item => {
+      const matchTitle = item.title?.toLowerCase().includes(q);
+      const matchGenre = (item.genre || []).some((g: string) => g.toLowerCase().includes(q));
+      return matchTitle || matchGenre;
     });
+
+    contents.sort((a, b) => (b.releaseYear || 0) - (a.releaseYear || 0));
+    contents = contents.slice(0, 8);
 
     const suggestions = contents.map((c) => ({
       title: c.title,

@@ -3,14 +3,14 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as ffmpeg from 'fluent-ffmpeg';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirebaseService } from '../firebase/firebase.service';
 
 @Injectable()
 export class VideoProcessService {
   private readonly logger = new Logger(VideoProcessService.name);
   private s3Client: S3Client | null = null;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly firebase: FirebaseService) {
     if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
       this.s3Client = new S3Client({
         region: process.env.AWS_REGION || 'us-east-1',
@@ -62,7 +62,7 @@ export class VideoProcessService {
     ];
 
     // Asynchronously kick off transcoding in the background
-    this.runTranscode(inputFilePath, outputDir, masterPlaylistPath, resolutions, uniqueId, isEpisode)
+    this.runTranscode(inputFilePath, outputDir, masterPlaylistPath, resolutions, uniqueId, isEpisode, contentId)
       .catch((err) => this.logger.error(`Failed to transcode video for ${uniqueId}:`, err));
 
     // Return the future URL immediately
@@ -81,6 +81,7 @@ export class VideoProcessService {
     resolutions: Array<any>,
     uniqueId: string,
     isEpisode: boolean,
+    contentId: string,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
       this.logger.log(`🎬 Transcoding started for ${uniqueId}`);
@@ -136,16 +137,26 @@ export class VideoProcessService {
                 ? `https://${process.env.AWS_S3_BUCKET || 'v19plus-assets'}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/uploads/${uniqueId}/master.m3u8`
                 : `/uploads/${uniqueId}/master.m3u8`;
 
-              if (isEpisode) {
-                await this.prisma.episode.update({
-                  where: { id: uniqueId },
-                  data: { videoUrl },
-                });
-              } else {
-                await this.prisma.content.update({
-                  where: { id: uniqueId },
-                  data: { videoUrl },
-                });
+              try {
+                if (isEpisode) {
+                  const doc = await this.firebase.firestore.collection('content').doc(contentId).get();
+                  if (doc.exists) {
+                    const data = doc.data() as any;
+                    const seasons = data.seasons || [];
+                    for (const season of seasons) {
+                      for (const ep of season.episodes) {
+                        if (ep.id === uniqueId) {
+                          ep.videoUrl = videoUrl;
+                        }
+                      }
+                    }
+                    await this.firebase.firestore.collection('content').doc(contentId).update({ seasons });
+                  }
+                } else {
+                  await this.firebase.firestore.collection('content').doc(contentId).update({ videoUrl });
+                }
+              } catch (e) {
+                this.logger.error(`Failed to update videoUrl for ${uniqueId}:`, e);
               }
 
               resolve();
@@ -160,3 +171,4 @@ export class VideoProcessService {
     });
   }
 }
+

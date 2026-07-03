@@ -8,20 +8,6 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-// Prisma error import fallback
-let PrismaClientKnownRequestError: any;
-try {
-  const prismaRuntime = require('@prisma/client/runtime/library');
-  PrismaClientKnownRequestError = prismaRuntime.PrismaClientKnownRequestError;
-} catch {
-  try {
-    const prismaClient = require('@prisma/client');
-    PrismaClientKnownRequestError = prismaClient.PrismaClientKnownRequestError;
-  } catch {
-    PrismaClientKnownRequestError = null;
-  }
-}
-
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');
@@ -48,43 +34,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         error = exception.name;
       }
     }
-    // 2. Handle Prisma Client Known Request Errors
-    else if (
-      PrismaClientKnownRequestError &&
-      exception instanceof PrismaClientKnownRequestError
-    ) {
-      const prismaError = exception as any;
-      this.logger.warn(`Prisma error caught [${prismaError.code}]: ${prismaError.message}`);
-
-      switch (prismaError.code) {
-        case 'P2002': { // Unique constraint violation
-          status = HttpStatus.CONFLICT;
-          const target = prismaError.meta?.target ? ` (${prismaError.meta.target.join(', ')})` : '';
-          message = `Resource unique constraint failed${target}`;
-          error = 'Conflict';
-          break;
-        }
-        case 'P2025': { // Record not found
-          status = HttpStatus.NOT_FOUND;
-          message = prismaError.meta?.cause || 'Record not found';
-          error = 'Not Found';
-          break;
-        }
-        case 'P2003': { // Foreign key constraint violation
-          status = HttpStatus.BAD_REQUEST;
-          message = `Foreign key constraint failed on field ${prismaError.meta?.field_name || ''}`;
-          error = 'Bad Request';
-          break;
-        }
-        default: {
-          status = HttpStatus.BAD_REQUEST;
-          message = 'Database operation failed';
-          error = 'Bad Request';
-          break;
-        }
-      }
-    }
-    // 3. Fallback for unhandled native/generic Errors
+    // 2. Fallback for unhandled native/generic Errors
     else {
       const err = exception as Error;
       this.logger.error(

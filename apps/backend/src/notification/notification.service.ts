@@ -1,5 +1,5 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { FirebaseService } from '../firebase/firebase.service';
 import * as nodemailer from 'nodemailer';
 
 interface EmailJob {
@@ -18,7 +18,7 @@ export class NotificationService {
   private emailQueue: EmailJob[] = [];
   private isProcessing = false;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(private readonly firebase: FirebaseService) {
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: parseInt(process.env.SMTP_PORT || '587'),
@@ -38,15 +38,16 @@ export class NotificationService {
   }
 
   async sendPushNotification(userId: string, title: string, message: string) {
-    // Save to database
-    const notification = await this.prisma.notification.create({
-      data: {
-        userId,
-        title,
-        message,
-        isRead: false,
-      },
-    });
+    const docRef = this.firebase.firestore.collection('notifications').doc();
+    const notification = {
+      id: docRef.id,
+      userId,
+      title,
+      message,
+      isRead: false,
+      createdAt: new Date(),
+    };
+    await docRef.set(notification);
 
     // Mock FCM trigger
     this.logger.log(`📱 Push sent to User ${userId}: [${title}] ${message}`);
@@ -54,17 +55,23 @@ export class NotificationService {
   }
 
   async listNotifications(userId: string) {
-    return this.prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    const snap = await this.firebase.firestore.collection('notifications')
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .get();
+      
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
   async markAsRead(userId: string, notificationId: string) {
-    return this.prisma.notification.updateMany({
-      where: { id: notificationId, userId },
-      data: { isRead: true },
-    });
+    const docRef = this.firebase.firestore.collection('notifications').doc(notificationId);
+    const doc = await docRef.get();
+    
+    if (doc.exists && doc.data()?.userId === userId) {
+      await docRef.update({ isRead: true });
+    }
+    
+    return { count: 1 };
   }
 
   async enqueueEmail(job: EmailJob) {
@@ -144,3 +151,4 @@ export class NotificationService {
     this.logger.log(`Password reset email sent to ${email}`);
   }
 }
+

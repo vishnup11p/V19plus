@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirebaseService } from '../firebase/firebase.service';
 import { RedisService } from '../redis/redis.service';
 import * as bcrypt from 'bcrypt';
 import { Response } from 'express';
@@ -8,31 +8,36 @@ import { Response } from 'express';
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
+    private firebase: FirebaseService,
     private jwtService: JwtService,
     private redisService: RedisService,
   ) {}
 
   async signup(email: string, passwordPlain: string, name?: string) {
-    const existing = await this.prisma.user.findUnique({ where: { email } });
-    if (existing) throw new ConflictException('Email already exists');
+    const snap = await this.firebase.firestore.collection('users').where('email', '==', email).limit(1).get();
+    if (!snap.empty) throw new ConflictException('Email already exists');
 
     const hashedPassword = await bcrypt.hash(passwordPlain, 10);
-    const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash: hashedPassword,
-        name: name || 'User',
-        role: 'USER',
-      },
-    });
+    const docRef = this.firebase.firestore.collection('users').doc();
+    const user = {
+      id: docRef.id,
+      email,
+      passwordHash: hashedPassword,
+      name: name || 'User',
+      role: 'USER',
+      createdAt: new Date(),
+    };
+    await docRef.set(user);
 
     return user;
   }
 
   async login(email: string, passwordPlain: string, deviceId: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || !user.passwordHash) {
+    const snap = await this.firebase.firestore.collection('users').where('email', '==', email).limit(1).get();
+    if (snap.empty) throw new UnauthorizedException('Invalid credentials');
+    
+    const user = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
+    if (!user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -104,35 +109,48 @@ export class AuthService {
   }
 
   async getMe(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      include: { subscription: true }
-    });
-    if (!user) throw new UnauthorizedException('User not found');
+    const doc = await this.firebase.firestore.collection('users').doc(userId).get();
+    if (!doc.exists) throw new UnauthorizedException('User not found');
+    
+    const subQuery = await this.firebase.firestore.collection('subscriptions').where('userId', '==', userId).limit(1).get();
+    const subscription = subQuery.empty ? null : { id: subQuery.docs[0].id, ...subQuery.docs[0].data() };
+
+    const user = { id: doc.id, ...doc.data() } as any;
     const { passwordHash, ...safeUser } = user;
+    safeUser.subscription = subscription;
     return safeUser;
   }
 
   async validateGoogleUser(profile: { email: string; name: string; googleId: string; avatarUrl?: string }) {
-    let user = await this.prisma.user.findUnique({ where: { email: profile.email } });
-    if (!user) {
-      user = await this.prisma.user.create({
-        data: {
-          email: profile.email,
-          name: profile.name,
-          googleId: profile.googleId,
-          avatarUrl: profile.avatarUrl,
-          role: 'USER',
+    const snap = await this.firebase.firestore.collection('users').where('email', '==', profile.email).limit(1).get();
+    
+    if (snap.empty) {
+      const docRef = this.firebase.firestore.collection('users').doc();
+      const user = {
+        id: docRef.id,
+        email: profile.email,
+        name: profile.name,
+        googleId: profile.googleId,
+        avatarUrl: profile.avatarUrl,
+        role: 'USER',
+        isVerified: true,
+        createdAt: new Date(),
+      };
+      await docRef.set(user);
+      return user;
+    } else {
+      let user = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
+      if (!user.googleId) {
+        user.googleId = profile.googleId;
+        user.avatarUrl = user.avatarUrl || profile.avatarUrl;
+        user.isVerified = true;
+        await this.firebase.firestore.collection('users').doc(user.id).update({
+          googleId: user.googleId,
+          avatarUrl: user.avatarUrl,
           isVerified: true,
-        },
-      });
-    } else if (!user.googleId) {
-      // Link the account if they originally signed up with password
-      user = await this.prisma.user.update({
-        where: { email: profile.email },
-        data: { googleId: profile.googleId, avatarUrl: user.avatarUrl || profile.avatarUrl, isVerified: true },
-      });
+        });
+      }
+      return user;
     }
-    return user;
   }
 }

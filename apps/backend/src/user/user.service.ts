@@ -1,85 +1,94 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirebaseService } from '../firebase/firebase.service';
 
 @Injectable()
 export class UserService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly firebase: FirebaseService) {}
 
   async getProfile(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        avatarUrl: true,
-        role: true,
-        isVerified: true,
-        createdAt: true,
-        subscription: {
-          select: { plan: true, status: true, currentPeriodEnd: true },
-        },
-      },
-    });
-    if (!user) throw new NotFoundException('User not found');
-    return user;
+    const doc = await this.firebase.firestore.collection('users').doc(userId).get();
+    if (!doc.exists) throw new NotFoundException('User not found');
+    const data = doc.data()!;
+    
+    const subQuery = await this.firebase.firestore.collection('subscriptions').where('userId', '==', userId).limit(1).get();
+    const subscription = subQuery.empty ? null : subQuery.docs[0].data();
+
+    return {
+      id: doc.id,
+      email: data.email,
+      name: data.name,
+      avatarUrl: data.avatarUrl,
+      role: data.role,
+      isVerified: data.isVerified,
+      createdAt: data.createdAt?.toDate(),
+      subscription: subscription ? {
+        plan: subscription.plan,
+        status: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd?.toDate(),
+      } : null,
+    };
   }
 
   async updateProfile(userId: string, data: { name?: string; avatarUrl?: string }) {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data,
-      select: { id: true, email: true, name: true, avatarUrl: true },
-    });
+    await this.firebase.firestore.collection('users').doc(userId).update(data as any);
+    const doc = await this.firebase.firestore.collection('users').doc(userId).get();
+    const docData = doc.data()!;
+    return { id: doc.id, email: docData.email, name: docData.name, avatarUrl: docData.avatarUrl };
   }
 
   async listProfiles(userId: string) {
-    return this.prisma.profile.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    });
+    const snap = await this.firebase.firestore.collection('profiles').where('userId', '==', userId).orderBy('createdAt', 'asc').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
   }
 
   async createProfile(userId: string, data: { name: string; avatarColor?: string; isKids?: boolean; pin?: string }) {
-    const count = await this.prisma.profile.count({ where: { userId } });
-    if (count >= 5) {
+    const snap = await this.firebase.firestore.collection('profiles').where('userId', '==', userId).get();
+    if (snap.size >= 5) {
       throw new BadRequestException('Maximum 5 profiles allowed');
     }
 
-    return this.prisma.profile.create({
-      data: { userId, ...data },
-    });
+    const docRef = this.firebase.firestore.collection('profiles').doc();
+    const profile = {
+      id: docRef.id,
+      userId,
+      ...data,
+      createdAt: new Date(),
+    };
+    await docRef.set(profile);
+    return profile;
   }
 
   async deleteProfile(userId: string, profileId: string) {
-    const profile = await this.prisma.profile.findFirst({ where: { id: profileId, userId } });
-    if (!profile) throw new NotFoundException('Profile not found');
-    await this.prisma.profile.delete({ where: { id: profileId } });
+    const docRef = this.firebase.firestore.collection('profiles').doc(profileId);
+    const doc = await docRef.get();
+    if (!doc.exists || doc.data()?.userId !== userId) throw new NotFoundException('Profile not found');
+    await docRef.delete();
     return { message: 'Profile deleted' };
   }
 
   async listDevices(userId: string) {
-    return this.prisma.device.findMany({
-      where: { userId },
-      orderBy: { lastUsedAt: 'desc' },
-    });
+    const snap = await this.firebase.firestore.collection('devices').where('userId', '==', userId).orderBy('createdAt', 'desc').get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
   }
 
   async registerDevice(userId: string, data: { deviceName: string; deviceType: string; ipAddress: string }) {
-    return this.prisma.device.create({
-      data: {
-        userId,
-        deviceName: data.deviceName,
-        deviceType: data.deviceType,
-        ipAddress: data.ipAddress,
-      },
-    });
+    const docRef = this.firebase.firestore.collection('devices').doc();
+    const device = {
+      id: docRef.id,
+      userId,
+      ...data,
+      createdAt: new Date(),
+    };
+    await docRef.set(device);
+    return device;
   }
 
   async deleteDevice(userId: string, deviceId: string) {
-    const device = await this.prisma.device.findFirst({ where: { id: deviceId, userId } });
-    if (!device) throw new NotFoundException('Device not found');
-    await this.prisma.device.delete({ where: { id: deviceId } });
+    const docRef = this.firebase.firestore.collection('devices').doc(deviceId);
+    const doc = await docRef.get();
+    if (!doc.exists || doc.data()?.userId !== userId) throw new NotFoundException('Device not found');
+    await docRef.delete();
     return { message: 'Device revoked' };
   }
 }
+
