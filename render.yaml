@@ -9,17 +9,19 @@ services:
     region: singapore
     plan: free
     healthCheckPath: /api/health
-    buildCommand: npm install --production=false && npm run build --workspace=apps/backend && cd apps/backend && npx prisma generate
+    buildCommand: npm install --production=false && npm run build --workspace=apps/backend
     startCommand: npm run start:prod --workspace=apps/backend
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 4000
-      # Supabase PostgreSQL (Settings → Database → Connection string)
-      - key: DATABASE_URL
+      # Firebase Admin SDK Credentials
+      - key: FIREBASE_PROJECT_ID
         sync: false
-      - key: DIRECT_URL
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
         sync: false
       - key: JWT_ACCESS_SECRET
         generateValue: true
