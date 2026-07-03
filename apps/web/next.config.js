@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const withPWA = require('next-pwa')({
+const withPWA = require('@ducanh2912/next-pwa').default({
   dest: 'public',
   disable: process.env.NODE_ENV === 'development',
 });
@@ -7,6 +7,7 @@ const backendUrl = process.env.BACKEND_URL || 'https://v19plus-api.onrender.com'
 
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
   transpilePackages: ['@v19plus/types', '@v19plus/utils'],
   images: {
     remotePatterns: [
