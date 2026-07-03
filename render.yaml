@@ -9,7 +9,7 @@ services:
     region: singapore
     plan: free
     healthCheckPath: /api/health
-    buildCommand: npm install --production=false && npm run build --workspace=apps/backend && cd apps/backend && npx prisma generate && (npx prisma migrate deploy || npx prisma db push)
+    buildCommand: npm install --production=false && npm run build --workspace=apps/backend && cd apps/backend && npx prisma generate
     startCommand: npm run start:prod --workspace=apps/backend
     envVars:
       - key: NODE_ENV
