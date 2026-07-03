@@ -176,7 +176,7 @@ model SiteSettings {
   logoUrl      String?
   faviconUrl   String?
   primaryColor String   @default("#FF6B1A")
-  footerText   String   @default("© 2026 V19+. All rights reserved.")
+  footerText   String   @default("(c) 2026 V19+. All rights reserved.")
   updatedAt    DateTime @updatedAt
 
   @@map("site_settings")
@@ -186,7 +186,7 @@ model Category {
   id        String   @id @default(uuid())
   name      String   @unique
   slug      String   @unique
-  icon      String   @default("🎬")
+  icon      String   @default("movie")
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
