@@ -4,8 +4,8 @@ import * as admin from 'firebase-admin';
 
 @Injectable()
 export class FirebaseService implements OnModuleInit {
-  private db: admin.firestore.Firestore;
-  private auth: admin.auth.Auth;
+  private db!: admin.firestore.Firestore;
+  private auth!: admin.auth.Auth;
 
   constructor(private configService: ConfigService) {}
 

@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { toJsonArray } from '../src/utils/jsonArray';
+
+const toJsonArray = (val: any) => JSON.stringify(val);
 
 const prisma = new PrismaClient();
 
@@ -104,6 +105,7 @@ async function main() {
         slug: m.slug,
         description: `${m.title} — A gripping ${m.genre[0].toLowerCase()} experience exclusive on V19+.`,
         type: 'MOVIE',
+        // @ts-ignore
         genre: toJsonArray(m.genre),
         tags: toJsonArray(m.tags),
         releaseYear: 2024 + (idx % 2),
@@ -136,6 +138,7 @@ async function main() {
         slug: s.slug,
         description: `${s.title} — An epic ${s.genre[0].toLowerCase()} series with twists at every turn.`,
         type: 'SERIES',
+        // @ts-ignore
         genre: toJsonArray(s.genre),
         tags: toJsonArray(s.tags),
         releaseYear: 2023,
@@ -181,6 +184,7 @@ async function main() {
         slug: d.slug,
         description: `${d.title} — A stunning documentary journey.`,
         type: 'DOCUMENTARY',
+        // @ts-ignore
         genre: toJsonArray(d.genre),
         tags: toJsonArray(d.tags),
         releaseYear: 2024,
