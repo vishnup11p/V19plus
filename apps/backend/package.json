@@ -6,7 +6,7 @@
     "dev": "npx nest start --watch",
     "build": "npx nest build",
     "start": "npx nest start",
-    "start:prod": "node dist/src/main.js",
+    "start:prod": "node dist/main.js",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:push": "prisma db push",
