@@ -9,7 +9,7 @@ import { useAdminAuthStore } from '../../store/authStore';
 import toast from 'react-hot-toast';
 
 export function FirebaseSignInButton() {
-  const { supabaseLogin } = useAdminAuthStore();
+  const { firebaseLogin } = useAdminAuthStore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -22,8 +22,8 @@ export function FirebaseSignInButton() {
       // Get the Firebase ID Token
       const idToken = await result.user.getIdToken();
       
-      // Pass the Firebase token to your backend (we'll keep using the same action for now)
-      await supabaseLogin(idToken);
+      // Pass the Firebase token to your backend
+      await firebaseLogin(idToken);
       
       toast.success('Admin authenticated successfully! 🔑');
       router.push('/');
