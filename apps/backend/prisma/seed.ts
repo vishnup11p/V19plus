@@ -107,6 +107,7 @@ async function main() {
         type: 'MOVIE',
         // @ts-ignore
         genre: toJsonArray(m.genre),
+        // @ts-ignore
         tags: toJsonArray(m.tags),
         releaseYear: 2024 + (idx % 2),
         rating: m.rating,
@@ -140,6 +141,7 @@ async function main() {
         type: 'SERIES',
         // @ts-ignore
         genre: toJsonArray(s.genre),
+        // @ts-ignore
         tags: toJsonArray(s.tags),
         releaseYear: 2023,
         rating: s.rating,
@@ -186,6 +188,7 @@ async function main() {
         type: 'DOCUMENTARY',
         // @ts-ignore
         genre: toJsonArray(d.genre),
+        // @ts-ignore
         tags: toJsonArray(d.tags),
         releaseYear: 2024,
         rating: d.rating,
