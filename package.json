@@ -21,7 +21,8 @@
     "build:all": "npm run build && npm run mobile:sync"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "turbo": "^2.10.2"
   },
   "allowScripts": {
     "bcrypt@6.0.0": true,
