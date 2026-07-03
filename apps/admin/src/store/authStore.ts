@@ -1,14 +1,13 @@
 import { create } from 'zustand';
 import { authApi, type AuthResponse } from '../api/admin';
 import { setAdminToken } from '../api/axios';
-import { supabase } from '../utils/supabase';
 
 interface AdminAuthState {
   user: AuthResponse['user'] | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   adminLogin: (email: string, password: string) => Promise<void>;
-  supabaseLogin: (accessToken: string) => Promise<void>;
+  firebaseLogin: (accessToken: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchMe: () => Promise<void>;
 }
@@ -24,15 +23,14 @@ export const useAdminAuthStore = create<AdminAuthState>((set) => ({
     set({ user: data.user, isAuthenticated: true, isLoading: false });
   },
 
-  supabaseLogin: async (accessToken) => {
-    const { data } = await authApi.supabaseLogin(accessToken);
+  firebaseLogin: async (accessToken) => {
+    const { data } = await authApi.firebaseLogin(accessToken);
     setAdminToken(data.accessToken);
     set({ user: data.user, isAuthenticated: true, isLoading: false });
   },
 
   logout: async () => {
     try { await authApi.logout(); } catch { /* ignore */ }
-    try { await supabase.auth.signOut(); } catch { /* ignore */ }
     setAdminToken(null);
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
