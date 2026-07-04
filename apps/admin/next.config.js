@@ -3,6 +3,8 @@ const backendUrl = process.env.BACKEND_URL || 'https://v19plus-api.onrender.com'
 
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
+  transpilePackages: ['@v19plus/types', '@v19plus/utils'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.amazonaws.com' },
