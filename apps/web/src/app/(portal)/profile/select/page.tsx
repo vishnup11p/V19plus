@@ -73,11 +73,15 @@ export default function ProfileSelectPage() {
   };
 
   const confirmProfile = (profile: any) => {
+    if (!profile || !profile.id) {
+      toast.error('Invalid profile data. Please try again.');
+      return;
+    }
     sessionStorage.setItem('v19_active_profile', JSON.stringify(profile));
     // Set cookie for middleware check (1 year expiration)
     document.cookie = `v19_active_profile_id=${profile.id}; path=/; max-age=31536000; SameSite=Lax; Secure`;
-    toast.success(`Switched to profile: ${profile.name} 👋`);
-    window.location.href = '/';
+    toast.success(`Welcome, ${profile.name}! 👋`);
+    router.push('/');
   };
 
   // Submit PIN

@@ -42,12 +42,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 3. If logged in, but has no active profile, and is not on exempt path, redirect to profile select
-  const isProfileSelect = pathname === '/profile/select';
-  const isSubscription = pathname === '/subscription';
-  if (hasToken && !hasProfile && !isProfileSelect && !isSubscription && !isAuthPath && !isPublicPath) {
-    return NextResponse.redirect(new URL('/profile/select', request.url));
-  }
+  // 3. Profile selection is enforced client-side by RouteGuard (sessionStorage-based).
+  // Removed server-side profile redirect to prevent redirect loops with cookie timing.
 
   return NextResponse.next();
 }

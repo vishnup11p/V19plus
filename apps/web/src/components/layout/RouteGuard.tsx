@@ -42,6 +42,16 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
       }
     }
 
+    // 5. If user already has a profile selected and is still on profile/select, move them forward
+    if (isProfileSelect && hasProfile) {
+      if (!hasSub) {
+        router.replace('/subscription');
+      } else {
+        router.replace('/');
+      }
+      return;
+    }
+
     setAuthorized(true);
   }, [isAuthenticated, isLoading, pathname, router, hasActiveSubscription]);
 
