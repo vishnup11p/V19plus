@@ -188,7 +188,6 @@ export function Topbar() {
                       <div className="py-1">
                         {[
                           { to: '/profile/select', icon: '👥', label: 'Switch Profiles' },
-                          { to: '/profile', icon: '👤', label: 'Profile' },
                           { to: '/settings', icon: '⚙️', label: 'Account Settings' },
                           // { to: '/subscription', icon: '⭐', label: 'Subscription' }, // Hidden — free tier
                         ].map((item) => (
