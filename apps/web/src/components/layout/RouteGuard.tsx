@@ -20,7 +20,7 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     const isProfileSelect = pathname === '/profile/select';
-    const isLegal = pathname.startsWith('/legal');
+    const isLegal = pathname.startsWith('/legal') || pathname === '/delete-account';
 
     // 2. Check profile selection
     const activeProfileStr = typeof window !== 'undefined' ? sessionStorage.getItem('v19_active_profile') : null;
