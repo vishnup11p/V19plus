@@ -82,9 +82,9 @@ export function Topbar() {
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             {settings?.logoUrl ? (
-              <img src={settings.logoUrl} alt={siteName} className="h-12 md:h-14 object-contain transition-transform hover:scale-105 duration-300" />
+              <img src={settings.logoUrl} alt={siteName} className="h-9 w-9 md:h-10 md:w-10 rounded-lg object-cover transition-transform hover:scale-105 duration-300" />
             ) : (
-              <img src="/logo.png" alt={siteName} className="h-12 md:h-14 object-contain transition-transform hover:scale-105 duration-300" />
+              <img src="/logo.png" alt={siteName} className="h-9 w-9 md:h-10 md:w-10 rounded-lg object-cover transition-transform hover:scale-105 duration-300" />
             )}
           </Link>
 
