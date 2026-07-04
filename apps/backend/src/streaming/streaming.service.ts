@@ -99,20 +99,27 @@ export class StreamingService implements OnModuleDestroy {
   async getHistory(userId: string) {
     const snap = await this.firebase.firestore.collection('watchHistory')
       .where('userId', '==', userId)
-      .orderBy('updatedAt', 'desc')
-      .limit(100)
       .get();
       
     const history = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
     
-    for (let h of history) {
+    // Sort in memory by updatedAt desc
+    history.sort((a: any, b: any) => {
+      const timeA = a.updatedAt?.toDate ? a.updatedAt.toDate().getTime() : (a.updatedAt ? new Date(a.updatedAt).getTime() : 0);
+      const timeB = b.updatedAt?.toDate ? b.updatedAt.toDate().getTime() : (b.updatedAt ? new Date(b.updatedAt).getTime() : 0);
+      return timeB - timeA;
+    });
+
+    const limitedHistory = history.slice(0, 100);
+    
+    for (let h of limitedHistory) {
       if (h.contentId) {
         const c = await this.firebase.firestore.collection('content').doc(h.contentId).get();
         if (c.exists) h.content = { id: c.id, ...c.data() };
       }
     }
 
-    return history.map((h) => ({
+    return limitedHistory.map((h) => ({
       ...h,
       content: {
         ...h.content,

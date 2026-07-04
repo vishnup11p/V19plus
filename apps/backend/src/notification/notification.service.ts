@@ -57,10 +57,14 @@ export class NotificationService {
   async listNotifications(userId: string) {
     const snap = await this.firebase.firestore.collection('notifications')
       .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
       .get();
       
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return list.sort((a: any, b: any) => {
+      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return timeB - timeA;
+    });
   }
 
   async markAsRead(userId: string, notificationId: string) {
