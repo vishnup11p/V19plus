@@ -88,9 +88,10 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        const refreshToken = useAuthStore.getState().refreshToken;
         const { data } = await axios.post(
           `${getBaseURL()}/auth/refresh`,
-          getDeviceInfo(),
+          { ...getDeviceInfo(), refreshToken },
           { withCredentials: true }
         );
         useAuthStore.getState().setAccessToken(data.accessToken);
