@@ -260,7 +260,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Subscription Plans Section */}
+      {/* Subscription Plans Section - Commented out for free tier
       <section className="py-24 px-4 md:px-12 bg-n-black">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16 space-y-3">
@@ -320,6 +320,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      */}
 
       {/* FAQ Accordion Section */}
       <section className="py-24 px-4 md:px-12 bg-gradient-to-b from-n-black to-n-bg">
