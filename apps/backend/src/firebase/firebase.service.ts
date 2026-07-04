@@ -25,6 +25,7 @@ export class FirebaseService implements OnModuleInit {
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             projectId: projectId,
+            storageBucket: `${projectId}.appspot.com`,
           });
         } catch (error) {
           console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64', error);
@@ -33,6 +34,7 @@ export class FirebaseService implements OnModuleInit {
         console.warn('Initializing Firebase Admin SDK without explicit credentials. (Assuming default credentials)');
         admin.initializeApp({
           projectId: projectId,
+          storageBucket: `${projectId}.appspot.com`,
         });
       }
     }
@@ -47,5 +49,9 @@ export class FirebaseService implements OnModuleInit {
 
   get firebaseAuth(): admin.auth.Auth {
     return this.auth;
+  }
+
+  get storage(): admin.storage.Storage {
+    return admin.storage();
   }
 }

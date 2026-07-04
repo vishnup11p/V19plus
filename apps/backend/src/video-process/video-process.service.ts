@@ -21,8 +21,21 @@ export class VideoProcessService {
       });
       this.logger.log('☁️ S3 Client initialized for video uploads');
     } else {
-      this.logger.log('☁️ S3 Client disabled (running in local uploads mode)');
+      this.logger.log('☁️ S3 Client disabled (running in Firebase Storage / local uploads mode)');
     }
+  }
+
+  async uploadFileToFirebase(filePath: string, destPath: string): Promise<string> {
+    const bucket = this.firebase.storage.bucket();
+    const [file] = await bucket.upload(filePath, {
+      destination: destPath,
+      metadata: {
+        cacheControl: 'public, max-age=31536000',
+      },
+    });
+
+    await file.makePublic();
+    return `https://storage.googleapis.com/${bucket.name}/${destPath}`;
   }
 
   async uploadFileToS3(filePath: string, s3Key: string): Promise<string> {
@@ -71,7 +84,8 @@ export class VideoProcessService {
       const region = process.env.AWS_REGION || 'us-east-1';
       return `https://${bucket}.s3.${region}.amazonaws.com/uploads/${uniqueId}/master.m3u8`;
     }
-    return `/uploads/${uniqueId}/master.m3u8`;
+    const firebaseBucket = this.firebase.storage.bucket();
+    return `https://storage.googleapis.com/${firebaseBucket.name}/uploads/${uniqueId}/master.m3u8`;
   }
 
   private runTranscode(
@@ -118,7 +132,7 @@ export class VideoProcessService {
               fs.writeFileSync(masterPath, masterContent);
               this.logger.log(`🎉 Master playlist created for ${uniqueId}`);
 
-              // If S3 is enabled, upload the output folder to S3
+              // Upload output folder (HLS segments)
               if (this.s3Client) {
                 try {
                   const files = fs.readdirSync(outputDir);
@@ -130,12 +144,23 @@ export class VideoProcessService {
                 } catch (s3Err) {
                   this.logger.error(`S3 uploads failed for ${uniqueId}:`, s3Err);
                 }
+              } else {
+                try {
+                  const files = fs.readdirSync(outputDir);
+                  for (const file of files) {
+                    const filePath = path.join(outputDir, file);
+                    await this.uploadFileToFirebase(filePath, `uploads/${uniqueId}/${file}`);
+                  }
+                  this.logger.log(`🔥 Uploaded HLS segments to Firebase Storage for ${uniqueId}`);
+                } catch (fbErr) {
+                  this.logger.error(`Firebase Storage uploads failed for ${uniqueId}:`, fbErr);
+                }
               }
 
               // Update the videoUrl in the database
               const videoUrl = this.s3Client
                 ? `https://${process.env.AWS_S3_BUCKET || 'v19plus-assets'}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/uploads/${uniqueId}/master.m3u8`
-                : `/uploads/${uniqueId}/master.m3u8`;
+                : `https://storage.googleapis.com/${this.firebase.storage.bucket().name}/uploads/${uniqueId}/master.m3u8`;
 
               try {
                 if (isEpisode) {
