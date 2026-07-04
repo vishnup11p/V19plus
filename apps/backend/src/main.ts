@@ -68,6 +68,8 @@ async function bootstrap() {
     'https://v19plus-web.vercel.app',
     // Allow any vercel.app preview deployments
     /\.vercel\.app$/,
+    // Allow Firebase App Hosting deployments
+    /\.hosted\.app$/,
     // Allow any onrender.com (admin panel may be hosted here)
     /\.onrender\.com$/,
     // Local dev
