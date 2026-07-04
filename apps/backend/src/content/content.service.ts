@@ -41,15 +41,21 @@ export class ContentService {
       col = col.where('genres', 'array-contains', query.genre.toLowerCase());
     }
     
-    col = col.orderBy('createdAt', 'desc').limit(limit).offset((page - 1) * limit);
     const snap = await col.get();
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    const allSnap = await this.firebase.firestore.collection('content').where('isPublished', '==', true).count().get();
-    const total = allSnap.data().count;
+    // Sort in memory by createdAt desc
+    items.sort((a: any, b: any) => {
+      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return timeB - timeA;
+    });
+
+    const total = items.length;
+    const paginatedItems = items.slice((page - 1) * limit, page * limit);
 
     return {
-      items: this.mapContentList(items),
+      items: this.mapContentList(paginatedItems),
       total,
       page,
       limit,
@@ -79,15 +85,16 @@ export class ContentService {
     const cached = await this.redis.get<any[]>(cacheKey);
     if (cached) return cached;
 
-    // Approximating trending since Firestore doesn't support complex groupBy
+    // Fetch and sort in memory to bypass composite index constraints
     const snap = await this.firebase.firestore.collection('content')
       .where('isPublished', '==', true)
-      .orderBy('imdbScore', 'desc')
-      .limit(10)
       .get();
 
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const mapped = this.mapContentList(items);
+    items.sort((a: any, b: any) => (b.imdbScore || 0) - (a.imdbScore || 0));
+
+    const trendingItems = items.slice(0, 10);
+    const mapped = this.mapContentList(trendingItems);
     await this.redis.set(cacheKey, mapped, 600);
     return mapped;
   }
@@ -96,10 +103,17 @@ export class ContentService {
     const snap = await this.firebase.firestore.collection('content')
       .where('isPublished', '==', true)
       .where('isOriginal', '==', true)
-      .orderBy('createdAt', 'desc')
       .get();
       
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    // Sort in memory by createdAt desc
+    items.sort((a: any, b: any) => {
+      const timeA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const timeB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return timeB - timeA;
+    });
+
     return this.mapContentList(items);
   }
 
@@ -107,37 +121,41 @@ export class ContentService {
     const snap = await this.firebase.firestore.collection('watchHistory')
       .where('userId', '==', userId)
       .where('completed', '==', false)
-      .where('progress', '>', 0)
-      .orderBy('progress', 'desc')
-      .limit(10)
       .get();
       
-    const history = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    let history = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    
+    // Filter and sort in memory
+    history = history.filter(h => h.progress > 0);
+    history.sort((a: any, b: any) => (b.progress || 0) - (a.progress || 0));
+    
+    const limitedHistory = history.slice(0, 10);
     
     // Fetch content manually
-    for (let h of history) {
+    for (let h of limitedHistory) {
       if (h.contentId) {
         const c = await this.firebase.firestore.collection('content').doc(h.contentId).get();
         if (c.exists) h.content = { id: c.id, ...c.data() };
       }
     }
 
-    return history.map((h) => ({
+    return limitedHistory.map((h) => ({
       ...h,
       content: this.mapContent(h.content),
     }));
   }
 
   async getRecommended(userId: string) {
-    // Basic recommendation
+    // Basic recommendation - Fetch and sort in memory
     const snap = await this.firebase.firestore.collection('content')
       .where('isPublished', '==', true)
-      .orderBy('imdbScore', 'desc')
-      .limit(20)
       .get();
       
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    return this.mapContentList(items);
+    items.sort((a: any, b: any) => (b.imdbScore || 0) - (a.imdbScore || 0));
+
+    const recommendedItems = items.slice(0, 20);
+    return this.mapContentList(recommendedItems);
   }
 
   async getBySlug(slug: string, userId?: string) {
