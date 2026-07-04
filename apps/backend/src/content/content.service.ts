@@ -174,13 +174,21 @@ export class ContentService {
   }
 
   async listCategories() {
-    const snap = await this.firebase.firestore.collection('categories').where('isActive', '==', true).orderBy('sortOrder', 'asc').get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap = await this.firebase.firestore.collection('categories').where('isActive', '==', true).get();
+    const categories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return categories.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }
 
   async getWatchlist(userId: string) {
-    const snap = await this.firebase.firestore.collection('watchlist').where('userId', '==', userId).orderBy('addedAt', 'desc').get();
+    const snap = await this.firebase.firestore.collection('watchlist').where('userId', '==', userId).get();
     const watchlist = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+    
+    // Sort in memory by addedAt desc
+    watchlist.sort((a: any, b: any) => {
+      const timeA = a.addedAt?.toDate ? a.addedAt.toDate().getTime() : (a.addedAt ? new Date(a.addedAt).getTime() : 0);
+      const timeB = b.addedAt?.toDate ? b.addedAt.toDate().getTime() : (b.addedAt ? new Date(b.addedAt).getTime() : 0);
+      return timeB - timeA;
+    });
     
     for (let w of watchlist) {
       if (w.contentId) {

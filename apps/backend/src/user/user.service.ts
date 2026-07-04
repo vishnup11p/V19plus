@@ -37,8 +37,9 @@ export class UserService {
   }
 
   async listProfiles(userId: string) {
-    const snap = await this.firebase.firestore.collection('profiles').where('userId', '==', userId).orderBy('createdAt', 'asc').get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
+    const snap = await this.firebase.firestore.collection('profiles').where('userId', '==', userId).get();
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
+    return list.sort((a: any, b: any) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
   }
 
   async createProfile(userId: string, data: { name: string; avatarColor?: string; isKids?: boolean; pin?: string }) {
@@ -67,8 +68,9 @@ export class UserService {
   }
 
   async listDevices(userId: string) {
-    const snap = await this.firebase.firestore.collection('devices').where('userId', '==', userId).orderBy('createdAt', 'desc').get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
+    const snap = await this.firebase.firestore.collection('devices').where('userId', '==', userId).get();
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() }));
+    return list.sort((a: any, b: any) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
   async registerDevice(userId: string, data: { deviceName: string; deviceType: string; ipAddress: string }) {
