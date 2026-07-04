@@ -55,8 +55,9 @@ export default function ProfileSelectPage() {
         toast.success('Profile created successfully! 🎉');
       }
     },
-    onError: () => {
-      toast.error('Failed to create profile. Try again.');
+    onError: (error: any) => {
+      const serverMsg = error.response?.data?.message || error.message || 'Failed to create profile. Try again.';
+      toast.error(typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg));
     }
   });
 
