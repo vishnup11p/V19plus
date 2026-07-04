@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   appName: 'V19Plus',
   webDir: 'public',
   server: {
-    url: process.env.CAPACITOR_SERVER_URL || 'https://v19plus-web.netlify.app',
+    url: process.env.CAPACITOR_SERVER_URL || 'https://v19plus-web--v19-plus.asia-southeast1.hosted.app',
     cleartext: false,
     androidScheme: 'https',
   },
