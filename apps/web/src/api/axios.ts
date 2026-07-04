@@ -97,17 +97,21 @@ api.interceptors.response.use(
         processQueue(null, data.accessToken);
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
         return api(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         processQueue(refreshError, null);
         
-        // Force delete the cookie on the client side just in case the backend fails to clear it
-        // This prevents middleware redirect loops with stale cookies
-        document.cookie = 'refreshToken=; Max-Age=0; path=/';
-        document.cookie = 'accessToken=; Max-Age=0; path=/';
+        const status = refreshError.response?.status;
+        // Only clear session if it is a client/auth error (400-499)
+        if (status && status >= 400 && status < 500) {
+          // Force delete the cookie on the client side just in case the backend fails to clear it
+          // This prevents middleware redirect loops with stale cookies
+          document.cookie = 'refreshToken=; Max-Age=0; path=/';
+          document.cookie = 'accessToken=; Max-Age=0; path=/';
 
-        useAuthStore.getState().logout();
-        if (!shouldSkipLoginRedirect()) {
-          window.location.href = '/login';
+          useAuthStore.getState().logout();
+          if (!shouldSkipLoginRedirect()) {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(refreshError);
       } finally {

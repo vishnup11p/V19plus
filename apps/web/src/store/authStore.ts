@@ -110,8 +110,15 @@ export const useAuthStore = create<AuthState>()(
           }
           const { data } = await authApi.me();
           set({ user: data, isAuthenticated: true, isLoading: false, _initialized: true });
-        } catch {
-          set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
+        } catch (error: any) {
+          const status = error.response?.status;
+          // Only clear session if it is a client/auth error (400-499)
+          if (status && status >= 400 && status < 500) {
+            set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
+          } else {
+            // Keep credentials on network/server errors so we don't log them out
+            set({ isLoading: false, _initialized: true });
+          }
         }
       },
     }),
