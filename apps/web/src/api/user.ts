@@ -15,4 +15,6 @@ export const userApi = {
   createProfile: (data: { name: string; avatarColor?: string; isKids?: boolean; pin?: string }) =>
     api.post<Profile>('/user/profiles', data),
   deleteProfile: (id: string) => api.delete(`/user/profiles/${id}`),
+  listDevices: () => api.get<any[]>('/user/devices'),
+  deleteDevice: (id: string) => api.delete(`/user/devices/${id}`),
 };
