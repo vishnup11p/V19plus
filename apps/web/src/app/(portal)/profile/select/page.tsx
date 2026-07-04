@@ -72,7 +72,7 @@ export default function ProfileSelectPage() {
     // Set cookie for middleware check (1 year expiration)
     document.cookie = `v19_active_profile_id=${profile.id}; path=/; max-age=31536000; SameSite=Lax`;
     toast.success(`Switched to profile: ${profile.name} 👋`);
-    router.replace('/');
+    window.location.href = '/';
   };
 
   // Submit PIN
