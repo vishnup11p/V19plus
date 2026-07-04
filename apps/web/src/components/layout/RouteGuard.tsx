@@ -20,40 +20,34 @@ export function RouteGuard({ children }: { children: React.ReactNode }) {
     }
 
     const isProfileSelect = pathname === '/profile/select';
-    const isSubscription = pathname === '/subscription';
     const isLegal = pathname.startsWith('/legal');
 
     // 2. Check profile selection
     const activeProfileStr = typeof window !== 'undefined' ? sessionStorage.getItem('v19_active_profile') : null;
     const hasProfile = !!activeProfileStr;
 
-    // 3. Check active subscription
-    const hasSub = hasActiveSubscription();
+    // 3. Subscription check — DISABLED (free tier for now)
+    // Uncomment below when subscription plans are activated:
+    // const hasSub = hasActiveSubscription();
 
     // 4. Enforce gates
-    if (!isProfileSelect && !isSubscription && !isLegal) {
+    if (!isProfileSelect && !isLegal) {
       if (!hasProfile) {
         router.replace('/profile/select');
         return;
       }
-      if (!hasSub) {
-        router.replace('/subscription');
-        return;
-      }
+      // Subscription gate disabled — free for all users
+      // if (!hasSub) { router.replace('/subscription'); return; }
     }
 
     // 5. If user already has a profile selected and is still on profile/select, move them forward
     if (isProfileSelect && hasProfile) {
-      if (!hasSub) {
-        router.replace('/subscription');
-      } else {
-        router.replace('/');
-      }
+      router.replace('/');
       return;
     }
 
     setAuthorized(true);
-  }, [isAuthenticated, isLoading, pathname, router, hasActiveSubscription]);
+  }, [isAuthenticated, isLoading, pathname, router]);
 
   if (isLoading || !authorized) {
     return (

@@ -51,8 +51,10 @@ export const useAuthStore = create<AuthState>()(
       setAccessToken: (token) => set({ accessToken: token }),
 
       hasActiveSubscription: () => {
-        const sub = get().user?.subscription;
-        return get().user?.role === 'ADMIN' || sub?.status === 'ACTIVE' || sub?.status === 'TRIALING';
+        // FREE TIER: All users have full access. Uncomment below when subscriptions are activated.
+        return true;
+        // const sub = get().user?.subscription;
+        // return get().user?.role === 'ADMIN' || sub?.status === 'ACTIVE' || sub?.status === 'TRIALING';
       },
 
       isAdmin: () => get().user?.role === 'ADMIN',
