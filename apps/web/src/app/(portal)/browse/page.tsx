@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useBrowse } from '../../../hooks/useContent';
 import { ContentCard } from '../../../components/content/ContentCard';
 import { Skeleton } from '../../../components/ui/Skeleton';
 import type { Content } from '@v19plus/types';
-
-import { useRouter } from 'next/navigation';
 
 const TYPES = [
   { value: '', label: 'All' },
@@ -17,34 +15,37 @@ const TYPES = [
   { value: 'ORIGINALS', label: 'Originals' },
 ];
 
-export default function BrowsePage() {
-  const [type, setType] = useState('');
+function BrowseContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Sync state from query parameters
+  const [type, setType] = useState(searchParams.get('type') || '');
+
+  useEffect(() => {
+    setType(searchParams.get('type') || '');
+  }, [searchParams]);
+
+  const handleTypeChange = (newType: string) => {
+    setType(newType);
+    const params = new URLSearchParams(window.location.search);
+    if (newType) {
+      params.set('type', newType);
+    } else {
+      params.delete('type');
+    }
+    router.replace(`/browse?${params.toString()}`);
+  };
+
   const { data, isLoading } = useBrowse(
     type === 'ORIGINALS' ? undefined : (type || undefined),
     undefined
   );
-  const router = useRouter();
 
   let items: Content[] = (data?.items || []) as Content[];
   if (type === 'ORIGINALS') {
     items = items.filter(item => item.isOriginal);
   }
-
-  // Get nice, beautiful gradient backgrounds matching the UI mockup pictures
-  const getGradientClass = (index: number) => {
-    const gradients = [
-      'from-[#b45309] via-[#78350f] to-[#0A0806]', // Orange/Brown
-      'from-[#0f766e] via-[#042f2e] to-[#0A0806]', // Teal
-      'from-[#6b21a8] via-[#4c1d95] to-[#0A0806]', // Purple
-      'from-[#854d0e] via-[#422006] to-[#0A0806]', // Yellow/Olive
-      'from-[#065f46] via-[#064e3b] to-[#0A0806]', // Green
-      'from-[#991b1b] via-[#450a0a] to-[#0A0806]', // Crimson Red
-      'from-[#3730a3] via-[#1e1b4b] to-[#0A0806]', // Blue/Indigo
-      'from-[#7c2d12] via-[#431407] to-[#0A0806]', // Dark Orange
-      'from-[#1e3a8a] via-[#172554] to-[#0A0806]', // Deep Blue
-    ];
-    return gradients[index % gradients.length];
-  };
 
   return (
     <div className="min-h-screen bg-n-bg pt-20 pb-24 px-4 md:px-12 animate-fade-in relative">
@@ -67,7 +68,7 @@ export default function BrowsePage() {
         {TYPES.map((t) => (
           <button
             key={t.value}
-            onClick={() => setType(t.value)}
+            onClick={() => handleTypeChange(t.value)}
             className={`flex-shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${
               type === t.value
                 ? 'bg-[#FF5C00] text-black shadow-lg shadow-[#FF5C00]/25'
@@ -79,37 +80,21 @@ export default function BrowsePage() {
         ))}
       </div>
 
-      {/* Grid - 3 columns for mobile/tablet, 4 for md, 5 for lg */}
+      {/* Grid - using premium ContentCard with metadata overlays */}
       {isLoading ? (
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
           {Array.from({ length: 12 }).map((_, i) => (
             <Skeleton key={i} className="aspect-[2/3] rounded-2xl" />
           ))}
         </div>
       ) : items.length > 0 ? (
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
-          {items.map((item, index) => (
-            <Link
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-4 gap-y-8 md:gap-x-6 md:gap-y-10">
+          {items.map((item) => (
+            <ContentCard
               key={item.id}
-              href={`/title/${item.slug}`}
-              className="block group relative aspect-[2/3] rounded-2xl overflow-hidden border border-white/5 hover:border-[#FF5C00]/40 transition-all duration-300"
-            >
-              {/* Gradient card content */}
-              <div className={`absolute inset-0 bg-gradient-to-b ${getGradientClass(index)} p-4 flex flex-col justify-end`}>
-                {item.thumbnailUrl && (
-                  <img
-                    src={item.thumbnailUrl}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-luminosity group-hover:scale-105 group-hover:opacity-30 transition-all duration-500"
-                    loading="lazy"
-                  />
-                )}
-                {/* Title */}
-                <h3 className="font-extrabold text-sm md:text-base text-[#FAF6EF] leading-tight group-hover:text-[#FF5C00] transition-colors relative z-10">
-                  {item.title}
-                </h3>
-              </div>
-            </Link>
+              content={item as any}
+              size="lg"
+            />
           ))}
         </div>
       ) : (
@@ -120,5 +105,20 @@ export default function BrowsePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-n-bg flex items-center justify-center">
+        <div className="relative w-12 h-12">
+          <div className="absolute inset-0 rounded-full border-4 border-white/5" />
+          <div className="absolute inset-0 rounded-full border-4 border-n-red border-t-transparent animate-spin" />
+        </div>
+      </div>
+    }>
+      <BrowseContent />
+    </Suspense>
   );
 }

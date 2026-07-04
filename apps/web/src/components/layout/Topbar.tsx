@@ -7,7 +7,7 @@ import { useSiteSettings } from '../../hooks/useSiteSettings';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
-  { to: '/browse', label: 'Movies' },
+  { to: '/browse?type=MOVIE', label: 'Movies' },
   { to: '/browse?type=SERIES', label: 'TV Shows' },
   { to: '/browse?type=DOCUMENTARY', label: 'Documentaries' },
 ];
