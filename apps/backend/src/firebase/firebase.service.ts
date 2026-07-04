@@ -14,7 +14,8 @@ export class FirebaseService implements OnModuleInit {
     // Only initialize if not already initialized
     if (!admin.apps.length) {
       const base64ServiceAccount = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_BASE64');
-      const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID');
+      const projectId = this.configService.get<string>('FIREBASE_PROJECT_ID') || 'v19-plus';
+      const storageBucket = this.configService.get<string>('FIREBASE_STORAGE_BUCKET') || `${projectId}.firebasestorage.app`;
 
       if (base64ServiceAccount) {
         try {
@@ -25,7 +26,7 @@ export class FirebaseService implements OnModuleInit {
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             projectId: projectId,
-            storageBucket: `${projectId}.appspot.com`,
+            storageBucket: storageBucket,
           });
         } catch (error) {
           console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64', error);
@@ -34,7 +35,7 @@ export class FirebaseService implements OnModuleInit {
         console.warn('Initializing Firebase Admin SDK without explicit credentials. (Assuming default credentials)');
         admin.initializeApp({
           projectId: projectId,
-          storageBucket: `${projectId}.appspot.com`,
+          storageBucket: storageBucket,
         });
       }
     }
