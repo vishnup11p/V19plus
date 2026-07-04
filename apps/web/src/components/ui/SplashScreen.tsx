@@ -3,39 +3,22 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { useAuthStore } from '../../store/authStore';
+
 // ─── Config ──────────────────────────────────────────────────────────────────
-const BLADE_COUNT   = 8;
 const LOGO_HOLD     = 1.8;   // seconds the logo stays centred
 const SHUTTER_DUR   = 0.85;  // seconds for the shutter to open
 const FADE_OUT_DUR  = 0.25;  // final fade-out of the wrapper
-
-/** Compute a triangular polygon slice from the centre to a conic arc. */
-function bladeClip(i: number, total: number): string {
-  const step = 360 / total;
-  const from = step * i;
-  const to   = step * (i + 1);
-  const pts  = ['50% 50%'];
-  for (let s = 0; s <= 6; s++) {
-    const a = ((from + ((to - from) * s) / 6) * Math.PI) / 180;
-    pts.push(`${50 + 55 * Math.cos(a)}% ${50 + 55 * Math.sin(a)}%`);
-  }
-  return `polygon(${pts.join(',')})`;
-}
 
 export function SplashScreen() {
   const [visible, setVisible] = useState(true);
   const [opening, setOpening] = useState(false);
   const [audioPlayed, setAudioPlayed] = useState(false);
-
-  // Pre-compute blade clip-paths so they're not recalculated on every render
-  const bladeClips = useMemo(
-    () => Array.from({ length: BLADE_COUNT }, (_, i) => bladeClip(i, BLADE_COUNT)),
-    [],
-  );
+  const { isAuthenticated } = useAuthStore();
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────
   useEffect(() => {
-    if (sessionStorage.getItem('v19_splash_seen') === 'true') {
+    if (isAuthenticated || sessionStorage.getItem('v19_splash_seen') === 'true') {
       setVisible(false);
       return;
     }
@@ -50,7 +33,7 @@ export function SplashScreen() {
     }, (LOGO_HOLD + SHUTTER_DUR + FADE_OUT_DUR + 0.1) * 1000);
 
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
+  }, [isAuthenticated]);
 
   // ─── Cinematic sound ─────────────────────────────────────────────────────
   const playSound = useCallback(() => {
@@ -141,37 +124,6 @@ export function SplashScreen() {
             }}
           />
         </motion.div>
-
-        {/* ── Shutter blades ──────────────────────────────────────── */}
-        {bladeClips.map((clip, i) => (
-          <motion.div
-            key={`blade-${i}`}
-            className="absolute inset-0 bg-[#080808]"
-            style={{
-              clipPath: clip,
-              willChange: 'transform, opacity',
-              backfaceVisibility: 'hidden',
-            }}
-            animate={
-              opening
-                ? { scale: 2.8, opacity: 0, rotate: (i % 2 === 0 ? 18 : -18) }
-                : { scale: 1, opacity: 1, rotate: 0 }
-            }
-            transition={
-              opening
-                ? { duration: SHUTTER_DUR, ease: [0.76, 0, 0.24, 1], delay: i * 0.025 }
-                : { duration: 0 }
-            }
-          />
-        ))}
-
-        {/* ── Dark overlay (fades with shutter) ───────────────────── */}
-        <motion.div
-          className="absolute inset-0 bg-black/50 pointer-events-none"
-          style={{ willChange: 'opacity' }}
-          animate={{ opacity: opening ? 0 : 1 }}
-          transition={{ duration: SHUTTER_DUR * 0.5 }}
-        />
 
         {/* ── Logo + branding ─────────────────────────────────────── */}
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
