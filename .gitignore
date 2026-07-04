@@ -37,3 +37,10 @@ coverage/
 # Misc
 *.apk
 .turbo  
+
+# Next-PWA generated files
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+apps/web/public/workbox-*.js
+apps/web/public/workbox-*.js.map
+apps/web/public/fallback-*.js
