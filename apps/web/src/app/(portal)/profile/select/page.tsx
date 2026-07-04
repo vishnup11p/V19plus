@@ -42,13 +42,18 @@ export default function ProfileSelectPage() {
       isKids,
       pin: profilePin.trim() || undefined
     }),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['profiles'] });
       setAddModalOpen(false);
       setNewProfileName('');
       setProfilePin('');
       setIsKids(false);
-      toast.success('Profile created successfully! 🎉');
+      
+      if (response.data) {
+        confirmProfile(response.data);
+      } else {
+        toast.success('Profile created successfully! 🎉');
+      }
     },
     onError: () => {
       toast.error('Failed to create profile. Try again.');
