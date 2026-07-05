@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const FROM = `"V19+" <${process.env.SMTP_USER || 'noreply@v19plus.com'}>`;
+const FROM = `"V19+" <${process.env.SMTP_USER || 'noreply@v19plus.app'}>`;
 
 export async function sendVerificationEmail(email: string, token: string): Promise<void> {
   const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;

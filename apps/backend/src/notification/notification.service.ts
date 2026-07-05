@@ -12,7 +12,7 @@ interface EmailJob {
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
   private transporter: nodemailer.Transporter;
-  private FROM = `"V19Plus" <noreply@v19plus.com>`;
+  private FROM = `"V19Plus" <noreply@v19plus.app>`;
 
   // In-memory queue
   private emailQueue: EmailJob[] = [];

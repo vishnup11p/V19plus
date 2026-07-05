@@ -135,7 +135,7 @@ export default function DeleteAccountPage() {
             {/* Manual contact note */}
             <div className="flex items-center gap-2 text-[10px] text-gray-500 justify-center">
               <Mail className="w-3.5 h-3.5" />
-              <span>Questions? Email us at <a href="mailto:support@v19plus.com" className="text-white hover:underline">support@v19plus.com</a></span>
+              <span>Questions? Email us at <a href="mailto:support@v19plus.app" className="text-white hover:underline">support@v19plus.app</a></span>
             </div>
           </form>
         )}
