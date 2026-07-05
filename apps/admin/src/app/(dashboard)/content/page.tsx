@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -70,10 +70,19 @@ export default function AdminContent() {
         ? adminApi.updateContent(editing.id, payload as any)
         : adminApi.createContent(payload as any);
     },
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       queryClient.invalidateQueries({ queryKey: ['admin-content'] });
-      toast.success(editing ? 'Content updated successfully' : 'Content created successfully');
-      resetForm();
+      
+      const savedItem = res.data;
+      const targetId = editing ? editing.id : savedItem?.id;
+
+      if (selectedFile && targetId) {
+        toast.success(editing ? 'Metadata updated. Starting video upload...' : 'Metadata created. Starting video upload...');
+        uploadMutation.mutate({ contentId: targetId, file: selectedFile });
+      } else {
+        toast.success(editing ? 'Content updated successfully' : 'Content created successfully');
+        resetForm();
+      }
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.message || 'Failed to save content';
@@ -99,9 +108,8 @@ export default function AdminContent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-content'] });
-      toast.success('Video uploaded. Transcoding started in background!');
-      setUploadingId(null);
-      setSelectedFile(null);
+      toast.success('Video uploaded & HLS transcoding initiated in background!');
+      resetForm();
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.message || 'Video upload failed';
@@ -113,6 +121,8 @@ export default function AdminContent() {
     setEditing(null);
     setForm(emptyForm);
     setShowForm(false);
+    setUploadingId(null);
+    setSelectedFile(null);
   };
 
   const startEdit = (item: ContentItem) => {
@@ -308,8 +318,32 @@ export default function AdminContent() {
             />
 
             <div className="md:col-span-2">
+              <label className="block text-xs font-semibold uppercase text-gray-500 mb-1.5">
+                Video File Upload (Upload video and transcode automatically)
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="video/*"
+                  onChange={handleFileChange}
+                  id="form-file-upload"
+                  className="hidden"
+                />
+                <label
+                  htmlFor="form-file-upload"
+                  className="flex items-center gap-2 px-4 py-3 bg-[#0f0f0f] border border-[#222] hover:border-[#333] rounded-xl text-sm text-gray-400 hover:text-white cursor-pointer transition-colors"
+                >
+                  <FileVideo className="w-5 h-5 shrink-0 text-red-500" />
+                  <span className="truncate">
+                    {selectedFile ? selectedFile.name : 'Choose raw video file...'}
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
               <Input
-                label="Direct Video URL (.m3u8 master HLS or raw mp4 file)"
+                label="Direct Video URL (Optional if uploading file above)"
                 value={form.videoUrl}
                 onChange={(v) => setForm({ ...form, videoUrl: v })}
                 placeholder="https://domain.com/hls/master.m3u8 (Optional if uploading file below)"
