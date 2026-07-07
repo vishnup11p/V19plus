@@ -36,6 +36,7 @@ coverage/
 
 # Misc
 *.apk
+*.aab
 .turbo  
 
 # Next-PWA generated files
