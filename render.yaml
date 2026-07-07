@@ -6,7 +6,6 @@ services:
   - type: web
     name: v19plus-api
     runtime: docker
-    dockerfile: apps/backend/Dockerfile
     region: singapore
     plan: free
     healthCheckPath: /api/health
