@@ -74,18 +74,46 @@ export class VideoProcessService {
       { width: 1920, height: 1080, name: '1080p', bitrate: '5000k', maxrate: '5350k', bufsize: '7500k' },
     ];
 
+    // Compute the final video URL upfront (same URL that will be set after transcoding)
+    let videoUrl: string;
+    if (this.s3Client) {
+      const bucket = process.env.AWS_S3_BUCKET || 'v19plus-assets';
+      const region = process.env.AWS_REGION || 'us-east-1';
+      videoUrl = `https://${bucket}.s3.${region}.amazonaws.com/uploads/${uniqueId}/master.m3u8`;
+    } else {
+      const firebaseBucket = this.firebase.storage.bucket();
+      videoUrl = `https://storage.googleapis.com/${firebaseBucket.name}/uploads/${uniqueId}/master.m3u8`;
+    }
+
+    // ✅ Update Firestore IMMEDIATELY so admin panel shows "HLS Stream Linked" right away
+    try {
+      if (isEpisode && episodeId) {
+        const doc = await this.firebase.firestore.collection('content').doc(contentId).get();
+        if (doc.exists) {
+          const data = doc.data() as any;
+          const seasons = data.seasons || [];
+          for (const season of seasons) {
+            for (const ep of season.episodes) {
+              if (ep.id === episodeId) {
+                ep.videoUrl = videoUrl;
+              }
+            }
+          }
+          await this.firebase.firestore.collection('content').doc(contentId).update({ seasons });
+        }
+      } else {
+        await this.firebase.firestore.collection('content').doc(contentId).update({ videoUrl });
+      }
+      this.logger.log(`✅ videoUrl set immediately in Firestore for ${uniqueId}`);
+    } catch (e) {
+      this.logger.error(`Failed to set initial videoUrl for ${uniqueId}:`, e);
+    }
+
     // Asynchronously kick off transcoding in the background
     this.runTranscode(inputFilePath, outputDir, masterPlaylistPath, resolutions, uniqueId, isEpisode, contentId)
       .catch((err) => this.logger.error(`Failed to transcode video for ${uniqueId}:`, err));
 
-    // Return the future URL immediately
-    if (this.s3Client) {
-      const bucket = process.env.AWS_S3_BUCKET || 'v19plus-assets';
-      const region = process.env.AWS_REGION || 'us-east-1';
-      return `https://${bucket}.s3.${region}.amazonaws.com/uploads/${uniqueId}/master.m3u8`;
-    }
-    const firebaseBucket = this.firebase.storage.bucket();
-    return `https://storage.googleapis.com/${firebaseBucket.name}/uploads/${uniqueId}/master.m3u8`;
+    return videoUrl;
   }
 
   private runTranscode(
