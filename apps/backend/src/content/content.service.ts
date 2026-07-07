@@ -238,7 +238,9 @@ export class ContentService {
   }
 
   async createContent(data: any) {
-    const payload = { ...data, createdAt: new Date() };
+    // Convert class instance to plain object for Firestore compatibility
+    const plain = JSON.parse(JSON.stringify(data));
+    const payload = { ...plain, createdAt: new Date() };
     const docRef = this.firebase.firestore.collection('content').doc();
     payload.id = docRef.id;
     await docRef.set(payload);
@@ -253,7 +255,9 @@ export class ContentService {
     const doc = await docRef.get();
     if (!doc.exists) throw new NotFoundException('Content not found');
 
-    await docRef.update(data);
+    // Convert class instance to plain object for Firestore compatibility
+    const plain = JSON.parse(JSON.stringify(data));
+    await docRef.update(plain);
     const updated = await docRef.get();
 
     await this.redis.del('content:featured');
