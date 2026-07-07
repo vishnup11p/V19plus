@@ -11,8 +11,12 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY turbo.json ./
 COPY apps/backend/package*.json ./apps/backend/
+COPY apps/web/package*.json ./apps/web/
+COPY apps/admin/package*.json ./apps/admin/
 COPY packages/types/package*.json ./packages/types/
 COPY packages/utils/package*.json ./packages/utils/
+COPY packages/config/package*.json ./packages/config/
+COPY packages/ui/package*.json ./packages/ui/
 
 # Install dependencies (monorepo root installs all workspace dependencies)
 RUN npm ci
