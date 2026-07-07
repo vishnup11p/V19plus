@@ -5,12 +5,11 @@
 services:
   - type: web
     name: v19plus-api
-    runtime: node
+    runtime: docker
+    dockerFilePath: apps/backend/Dockerfile
     region: singapore
     plan: free
     healthCheckPath: /api/health
-    buildCommand: npm install --production=false && npm run build --workspace=apps/backend
-    startCommand: npm run start:prod --workspace=apps/backend
     envVars:
       - key: NODE_ENV
         value: production
