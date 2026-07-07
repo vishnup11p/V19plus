@@ -136,15 +136,16 @@ export class VideoProcessService {
         
         ffmpeg(inputPath)
           .outputOptions([
-            '-profile:v main',
-            `-vf scale=w=${res.width}:h=${res.height}:force_original_aspect_ratio=decrease`,
-            '-c:a aac',
-            '-ar 48000',
-            '-b:a 128k',
-            '-c:v h264',
+            // Scale down to target resolution but NEVER upscale beyond the source
+            `-vf scale=w='min(${res.width},iw)':h='min(${res.height},ih)':force_original_aspect_ratio=decrease,pad=ceil(ow/2)*2:ceil(oh/2)*2`,
+            '-c:v libx264',
+            '-pix_fmt yuv420p',
             `-b:v ${res.bitrate}`,
             `-maxrate ${res.maxrate}`,
             `-bufsize ${res.bufsize}`,
+            '-c:a aac',
+            '-ar 48000',
+            '-b:a 128k',
             '-hls_time 10',
             '-hls_playlist_type event',
             `-hls_segment_filename ${path.join(outputDir, `${res.name}_%03d.ts`)}`,
