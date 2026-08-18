@@ -1,0 +1,16 @@
+{
+  "name": "@v19plus/utils",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@v19plus/types": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

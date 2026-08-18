@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+
+# Environment files (contain secrets!)
+.env
+.env.local
+.env.production
+.env.development
+frontend/.env
+backend/.env
+apps/backend/.env
+apps/web/.env
+
+# Database
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+backend/.pgdata/
+
+# Logs
+*.log
+logfile
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+coverage/
+
+# Misc
+*.apk
+*.aab
+.turbo  
+
+# Next-PWA generated files
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+apps/web/public/workbox-*.js
+apps/web/public/workbox-*.js.map
+apps/web/public/fallback-*.js
