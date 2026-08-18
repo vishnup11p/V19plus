@@ -1,26 +1,23 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Preserve line numbers for crash reporting and stack traces
+-keepattributes SourceFile,LineNumberTable,*Annotation*
+-renamesourcefileattribute SourceFile
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Capacitor Core & Plugin Bridge Rules
+-keep class com.getcapacitor.** { *; }
+-keepclassmembers class * {
+    @com.getcapacitor.PluginMethod public *;
+    @com.getcapacitor.annotation.CapacitorPlugin public *;
+}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Android WebView JavascriptInterface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
-
-# Google Sign-In and API client rules
+# Google Sign-In, Firebase, and API client rules
 -keep class com.google.android.gms.** { *; }
 -dontwarn com.google.android.gms.**
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
 -keep class com.google.api.client.** { *; }
+
