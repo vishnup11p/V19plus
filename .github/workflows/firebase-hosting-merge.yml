@@ -9,13 +9,13 @@ on:
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V19_PLUS }}
     steps:
       - uses: actions/checkout@v4
       - run: npm ci && npm run build
       - uses: FirebaseExtended/action-hosting-deploy@v0
-        env:
-          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V19_PLUS }}
-        if: env.SERVICE_ACCOUNT != ''
+        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V19_PLUS }}

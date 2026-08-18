@@ -99,6 +99,9 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
 
     steps:
       - name: Checkout Source Code
@@ -133,8 +136,6 @@ jobs:
           npm run build --workspace=apps/backend --if-present
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Sync Capacitor Android Config
         env:
@@ -150,9 +151,7 @@ jobs:
           ./gradlew assembleDebug bundleRelease
 
       - name: Sign App Bundle
-        env:
-          KEYSTORE: ${{ secrets.KEYSTORE_BASE64 }}
-        if: env.KEYSTORE != ''
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
@@ -170,9 +169,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Compiled AAB
-        env:
-          KEYSTORE: ${{ secrets.KEYSTORE_BASE64 }}
-        if: env.KEYSTORE != '' && steps.sign_app.outputs.signedReleaseFile != ''
+        if: ${{ env.KEYSTORE_BASE64 != '' && steps.sign_app.outputs.signedReleaseFile != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: v19plus-aab
@@ -180,9 +177,7 @@ jobs:
           retention-days: 7
 
       - name: Upload to Google Play Store (Internal Sharing / Testing)
-        env:
-          PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
-        if: env.PLAY_STORE_JSON_KEY != ''
+        if: ${{ env.PLAY_STORE_JSON_KEY != '' }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonRaw: ${{ secrets.PLAY_STORE_JSON_KEY }}
