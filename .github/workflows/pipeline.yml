@@ -150,6 +150,7 @@ jobs:
           ./gradlew assembleDebug bundleRelease
 
       - name: Sign App Bundle
+        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         uses: r0adkll/sign-android-release@v1
         id: sign_app
         with:
@@ -167,6 +168,7 @@ jobs:
           retention-days: 7
 
       - name: Upload Compiled AAB
+        if: ${{ secrets.KEYSTORE_BASE64 != '' && steps.sign_app.outputs.signedReleaseFile != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: v19plus-aab
