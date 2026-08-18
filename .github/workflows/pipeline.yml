@@ -32,8 +32,13 @@ jobs:
           npm run build --workspace=packages/utils --if-present
           npm run build --workspace=packages/ui --if-present
 
-      - name: Generate Prisma Client
-        run: npx prisma generate --schema=apps/backend/prisma/schema.prisma
+      - name: Generate Prisma Client (If Schema Present)
+        run: |
+          if [ -f "apps/backend/prisma/schema.prisma" ]; then
+            npx prisma generate --schema=apps/backend/prisma/schema.prisma
+          else
+            echo "No Prisma schema found, skipping prisma generate."
+          fi
 
       - name: Build Apps Individually
         run: |
