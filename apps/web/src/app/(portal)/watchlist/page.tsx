@@ -10,13 +10,15 @@ import { useEffect } from 'react';
 export default function WatchlistPage() {
   const { data: watchlist, isLoading } = useWatchlist();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const authLoading = useAuthStore((s) => s.isLoading);
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // Wait for both auth initialization AND watchlist to finish loading before redirecting
+    if (!authLoading && !isLoading && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, authLoading, isLoading, router]);
 
   if (isLoading) {
     return (

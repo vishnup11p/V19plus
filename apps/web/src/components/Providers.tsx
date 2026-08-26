@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, Component } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
@@ -8,6 +8,38 @@ import { io, Socket } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useDownloadStore } from '../store/downloadStore';
+
+// Top-level error boundary to prevent blank white screen on JS errors
+class AppErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: string }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: '' };
+  }
+  static getDerivedStateFromError(err: Error) {
+    return { hasError: true, error: err?.message || 'Unknown error' };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Something went wrong</h2>
+          <p style={{ fontSize: 14, color: '#888', marginBottom: 24, textAlign: 'center' }}>{this.state.error}</p>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: '' }); window.location.reload(); }}
+            style={{ background: '#e50914', color: '#fff', border: 'none', borderRadius: 6, padding: '10px 24px', fontWeight: 700, cursor: 'pointer' }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 let socket: Socket | null = null;
 
@@ -28,7 +60,8 @@ function AuthInit({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
-    fetchMe();
+    // Wrap in try/catch so a network failure on cold start never causes a blank screen
+    fetchMe().catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Socket.IO connection management
@@ -182,21 +215,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [initDownloads]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthInit>
-        <CapacitorNativeInit />
-        {children}
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: '#1A1A1A',
-              color: '#F5F5F0',
-              border: '1px solid #2A2A28',
-            },
-          }}
-        />
-      </AuthInit>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthInit>
+          <CapacitorNativeInit />
+          {children}
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: '#1A1A1A',
+                color: '#F5F5F0',
+                border: '1px solid #2A2A28',
+              },
+            }}
+          />
+        </AuthInit>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }
