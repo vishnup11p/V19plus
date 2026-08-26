@@ -79,8 +79,8 @@ export default function ProfileSelectPage() {
       return;
     }
     sessionStorage.setItem('v19_active_profile', JSON.stringify(profile));
-    // Set cookie for middleware check (1 year expiration)
-    document.cookie = `v19_active_profile_id=${profile.id}; path=/; max-age=31536000; SameSite=Lax; Secure`;
+    const sec = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `v19_active_profile_id=${profile.id}; path=/; max-age=31536000; SameSite=Lax${sec}`;
     toast.success(`Welcome, ${profile.name}! 👋`);
     router.push('/');
   };

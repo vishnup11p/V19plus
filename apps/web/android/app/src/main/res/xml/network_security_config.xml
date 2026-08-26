@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Configuration for V19Plus
+  - Trusts system CAs for all connections (production API, Firebase, etc.)
+  - Restricts cleartext traffic to localhost only (for dev builds)
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Allow cleartext for localhost only during development -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+
+    <!-- Production API — enforce HTTPS -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">v19plus-api.onrender.com</domain>
+        <domain includeSubdomains="true">v19plus-web.vercel.app</domain>
+        <domain includeSubdomains="true">v19plus-web--v19-plus.asia-southeast1.hosted.app</domain>
+        <domain includeSubdomains="true">v19-plus.firebasestorage.app</domain>
+        <domain includeSubdomains="true">firebaseio.com</domain>
+        <domain includeSubdomains="true">googleapis.com</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>

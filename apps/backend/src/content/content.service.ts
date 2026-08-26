@@ -37,12 +37,18 @@ export class ContentService {
     if (query.type) {
       col = col.where('type', '==', query.type);
     }
-    if (query.genre) {
-      col = col.where('genres', 'array-contains', query.genre.toLowerCase());
-    }
     
     const snap = await col.get();
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let items = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+
+    // In-memory genre filter for case-insensitive matching across genre and genres fields
+    if (query.genre) {
+      const gLower = query.genre.toLowerCase();
+      items = items.filter((item) => {
+        const genresList = item.genres || item.genre || [];
+        return Array.isArray(genresList) && genresList.some((g: string) => typeof g === 'string' && g.toLowerCase() === gLower);
+      });
+    }
 
     // Sort in memory by createdAt desc
     items.sort((a: any, b: any) => {
@@ -240,7 +246,13 @@ export class ContentService {
   async createContent(data: any) {
     // Convert class instance to plain object for Firestore compatibility
     const plain = JSON.parse(JSON.stringify(data));
-    const payload = { ...plain, createdAt: new Date() };
+    const genreList = plain.genres || plain.genre || [];
+    const payload = {
+      ...plain,
+      genre: genreList,
+      genres: genreList,
+      createdAt: new Date(),
+    };
     const docRef = this.firebase.firestore.collection('content').doc();
     payload.id = docRef.id;
     await docRef.set(payload);
@@ -257,6 +269,11 @@ export class ContentService {
 
     // Convert class instance to plain object for Firestore compatibility
     const plain = JSON.parse(JSON.stringify(data));
+    if (plain.genre || plain.genres) {
+      const genreList = plain.genres || plain.genre || [];
+      plain.genre = genreList;
+      plain.genres = genreList;
+    }
     await docRef.update(plain);
     const updated = await docRef.get();
 

@@ -67,8 +67,9 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         const { data } = await authApi.login(email, password, undefined, getDeviceInfo());
         if (typeof window !== 'undefined') {
-          document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=31536000; SameSite=Lax; Secure`;
-          document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax; Secure`;
+          const sec = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=31536000; SameSite=Lax${sec}`;
+          document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax${sec}`;
         }
         set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, _initialized: true });
       },
@@ -76,8 +77,9 @@ export const useAuthStore = create<AuthState>()(
       signup: async (email, password, name) => {
         const { data } = await authApi.signup(email, password, undefined, name, getDeviceInfo());
         if (typeof window !== 'undefined') {
-          document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=31536000; SameSite=Lax; Secure`;
-          document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax; Secure`;
+          const sec = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=31536000; SameSite=Lax${sec}`;
+          document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax${sec}`;
         }
         set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, _initialized: true });
       },
@@ -85,8 +87,9 @@ export const useAuthStore = create<AuthState>()(
       adminLogin: async (email, password) => {
         const { data } = await authApi.adminLogin(email, password, getDeviceInfo());
         if (typeof window !== 'undefined') {
-          document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=31536000; SameSite=Lax; Secure`;
-          document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax; Secure`;
+          const sec = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `refreshToken=${data.refreshToken}; path=/; max-age=31536000; SameSite=Lax${sec}`;
+          document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax${sec}`;
         }
         set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken, isAuthenticated: true, isLoading: false, _initialized: true });
       },
@@ -107,7 +110,8 @@ export const useAuthStore = create<AuthState>()(
       refresh: async () => {
         const { data } = await authApi.refresh({ ...getDeviceInfo(), refreshToken: get().refreshToken });
         if (typeof window !== 'undefined') {
-          document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax; Secure`;
+          const sec = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `accessToken=${data.accessToken}; path=/; max-age=86400; SameSite=Lax${sec}`;
         }
         set({ accessToken: data.accessToken });
       },
@@ -122,7 +126,8 @@ export const useAuthStore = create<AuthState>()(
             const { data: refreshData } = await authApi.refresh({ ...getDeviceInfo(), refreshToken: get().refreshToken });
             token = refreshData.accessToken;
             if (typeof window !== 'undefined') {
-              document.cookie = `accessToken=${token}; path=/; max-age=86400; SameSite=Lax; Secure`;
+              const sec = window.location.protocol === 'https:' ? '; Secure' : '';
+              document.cookie = `accessToken=${token}; path=/; max-age=86400; SameSite=Lax${sec}`;
             }
             set({ accessToken: token });
           }

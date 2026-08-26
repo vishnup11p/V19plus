@@ -9,7 +9,8 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     super({
       clientID: process.env.GOOGLE_CLIENT_ID || 'MISSING_GOOGLE_CLIENT_ID',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'MISSING_GOOGLE_CLIENT_SECRET',
-      callbackURL: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:4000/api/auth/google/callback',
+      callbackURL: process.env.GOOGLE_REDIRECT_URI ||
+        `${(process.env.BACKEND_URL || 'https://v19plus-api.onrender.com').replace(/\/$/, '')}/api/auth/google/callback`,
       scope: ['email', 'profile'],
     });
   }

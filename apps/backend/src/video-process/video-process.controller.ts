@@ -18,7 +18,13 @@ export class VideoProcessController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads/temp',
+        destination: (req, file, callback) => {
+          const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+          if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+          }
+          callback(null, tempDir);
+        },
         filename: (req, file, callback) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = path.extname(file.originalname);

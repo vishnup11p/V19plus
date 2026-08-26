@@ -32,7 +32,7 @@ export const authApi = {
   supabaseLogin: (accessToken: string) =>
     api.post<{ user: User; accessToken: string }>('/auth/supabase', { accessToken }),
   adminLogin: (email: string, password: string, deviceInfo?: any) =>
-    api.post<{ user: User; accessToken: string; refreshToken: string }>('/admin/auth/login', { email, password, ...deviceInfo }),
+    api.post<{ user: User; accessToken: string; refreshToken: string }>('/auth/login', { email, password, ...deviceInfo }),
   logout: () => api.post('/auth/logout'),
   refresh: (deviceInfo?: any) => api.post<{ accessToken: string }>('/auth/refresh', deviceInfo || {}),
   me: () => api.get<User>('/auth/me'),

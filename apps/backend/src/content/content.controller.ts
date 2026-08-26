@@ -24,15 +24,17 @@ import { UpdateContentDto } from './dto/update-content.dto';
 
 /** Extract userId from a Bearer token without hard-failing if absent */
 function optionalUserId(req: Request): string | undefined {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) return undefined;
-  const token = header.split(' ')[1];
+  let token = req.cookies?.['accessToken'];
+  if (!token && req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token) return undefined;
   try {
     const jwtService = new JwtService({});
     const payload = jwtService.verify(token, {
-      secret: process.env.JWT_ACCESS_SECRET || 'dev_access_secret_change_in_production',
+      secret: process.env.JWT_ACCESS_SECRET || 'secret',
     });
-    return payload?.userId as string | undefined;
+    return (payload?.sub || payload?.userId || payload?.id) as string | undefined;
   } catch {
     return undefined;
   }

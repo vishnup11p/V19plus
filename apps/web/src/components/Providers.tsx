@@ -39,13 +39,29 @@ function AuthInit({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
+    const getSocketUrl = () => {
+      if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
+      const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform?.();
+      if (isNative || process.env.NODE_ENV === 'production') {
+        return 'https://v19plus-api.onrender.com';
+      }
+      return 'http://localhost:4000';
+    };
+
+    const socketUrl = getSocketUrl();
     socket = io(socketUrl, {
       auth: { token: accessToken },
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 3,
+      timeout: 10000,
     });
 
     socket.on('notification', (data: { message: string }) => {
       toast(data.message, { icon: '🎬' });
+    });
+
+    socket.on('connect_error', () => {
+      // Gracefully silent on dev / server asleep
     });
 
     return () => {

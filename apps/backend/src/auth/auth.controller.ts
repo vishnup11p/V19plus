@@ -9,6 +9,19 @@ import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @Post('check-email')
+  async checkEmail(@Body('email') email: string) {
+    return this.authService.checkEmail(email);
+  }
+
+  @Post('firebase')
+  async firebaseAuth(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+    const token = body.accessToken || body.idToken;
+    const { user, accessToken, refreshToken } = await this.authService.validateFirebaseToken(token);
+    this.authService.setCookies(res, accessToken, refreshToken);
+    return { user, accessToken, refreshToken };
+  }
+
   @Post('signup')
   async signup(@Body() body: any, @Res({ passthrough: true }) res: Response) {
     const user = await this.authService.signup(body.email, body.password, body.name);
@@ -26,11 +39,11 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: any) {
-    const refreshToken = req.cookies['refreshToken'] || body.refreshToken;
+    const refreshToken = req.cookies?.['refreshToken'] || body?.refreshToken;
     if (!refreshToken) {
       return { success: false };
     }
-    const { accessToken } = await this.authService.refresh(refreshToken, body.deviceId || 'unknown');
+    const { accessToken } = await this.authService.refresh(refreshToken, body?.deviceId || 'unknown');
     
     // Set the new access token cookie
     res.cookie('accessToken', accessToken, {
@@ -44,17 +57,17 @@ export class AuthController {
 
   @UseGuards(AuthGuard)
   @Post('logout')
-  async logout(@CurrentUser() user: any, @Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: any) {
-    await this.authService.logout(user.id, body.deviceId || 'unknown');
+  async logout(@CurrentUser('userId') userId: string, @Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: any) {
+    await this.authService.logout(userId, body?.deviceId || 'unknown');
     this.authService.clearCookies(res);
     return { success: true };
   }
 
   @UseGuards(AuthGuard)
   @Get('me')
-  async me(@CurrentUser() user: any) {
+  async me(@CurrentUser('userId') userId: string) {
     // Return full user detail from DB
-    return this.authService.getMe(user.id);
+    return this.authService.getMe(userId);
   }
 
   @Get('google')
@@ -82,6 +95,7 @@ export class AuthController {
     this.authService.setCookies(res, accessToken, refreshToken);
     
     // Redirect back to frontend
-    res.redirect(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/browse');
+    const frontendBase = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://v19plus-web.vercel.app';
+    res.redirect(`${frontendBase.replace(/\/$/, '')}/browse`);
   }
 }

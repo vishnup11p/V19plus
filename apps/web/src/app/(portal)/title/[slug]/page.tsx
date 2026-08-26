@@ -24,7 +24,7 @@ export default function TitleDetailPage() {
   const addToWatchlist = useAddToWatchlist();
   const removeFromWatchlist = useRemoveFromWatchlist();
 
-  const inList = !!(content && watchlist?.some((item: any) => item.content.id === content.id));
+  const inList = !!(content && watchlist?.some((item: any) => item?.content?.id === content.id));
 
   const handleWatchlist = async () => {
     if (!isAuthenticated) {

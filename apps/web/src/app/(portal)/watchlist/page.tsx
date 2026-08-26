@@ -34,7 +34,7 @@ export default function WatchlistPage() {
     );
   }
 
-  const items = watchlist || [];
+  const items = (watchlist || []).filter((item: any) => item?.content && item.content.id);
 
   return (
     <div className="min-h-screen bg-n-bg pt-24 pb-16 animate-fade-in animate-fade-up">

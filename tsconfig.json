@@ -10,6 +10,11 @@
     "resolveJsonModule": true,
     "baseUrl": "."
   },
+  "references": [
+    { "path": "./apps/backend" },
+    { "path": "./apps/web" },
+    { "path": "./apps/admin" }
+  ],
   "exclude": [
     "node_modules",
     "backend",

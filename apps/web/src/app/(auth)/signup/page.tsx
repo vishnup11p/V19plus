@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '../../../store/authStore';
-import { supabase } from '../../../utils/supabase';
 import toast from 'react-hot-toast';
 
 export default function SignupPage() {

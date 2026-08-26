@@ -121,6 +121,61 @@ export class AuthService {
     return safeUser;
   }
 
+  async checkEmail(email: string) {
+    const snap = await this.firebase.firestore.collection('users').where('email', '==', email).limit(1).get();
+    return { exists: !snap.empty };
+  }
+
+  async validateFirebaseToken(idToken: string) {
+    try {
+      const decoded = await this.firebase.firebaseAuth.verifyIdToken(idToken);
+      const email = decoded.email;
+      if (!email) throw new UnauthorizedException('Firebase token missing email');
+
+      const snap = await this.firebase.firestore.collection('users').where('email', '==', email).limit(1).get();
+      let user: any;
+      if (snap.empty) {
+        const docRef = this.firebase.firestore.collection('users').doc();
+        user = {
+          id: docRef.id,
+          email,
+          name: decoded.name || 'User',
+          avatarUrl: decoded.picture || undefined,
+          firebaseUid: decoded.uid,
+          role: 'USER',
+          isVerified: true,
+          createdAt: new Date(),
+        };
+        await docRef.set(user);
+      } else {
+        user = { id: snap.docs[0].id, ...snap.docs[0].data() };
+        if (!user.firebaseUid) {
+          await this.firebase.firestore.collection('users').doc(user.id).update({
+            firebaseUid: decoded.uid,
+            isVerified: true,
+          });
+        }
+      }
+
+      const payload = { sub: user.id, role: user.role };
+      const accessToken = this.jwtService.sign(payload, {
+        secret: process.env.JWT_ACCESS_SECRET || 'secret',
+        expiresIn: '15m',
+      });
+      const refreshToken = this.jwtService.sign(payload, {
+        secret: process.env.JWT_REFRESH_SECRET || 'refresh_secret',
+        expiresIn: '7d',
+      });
+
+      await this.redisService.set(`refresh_token:${user.id}:firebase-login`, refreshToken, 60 * 60 * 24 * 7);
+
+      const { passwordHash, ...safeUser } = user;
+      return { user: safeUser, accessToken, refreshToken };
+    } catch (e: any) {
+      throw new UnauthorizedException(e?.message || 'Invalid Firebase token');
+    }
+  }
+
   async validateGoogleUser(profile: { email: string; name: string; googleId: string; avatarUrl?: string }) {
     const snap = await this.firebase.firestore.collection('users').where('email', '==', profile.email).limit(1).get();
     
