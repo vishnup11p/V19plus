@@ -17,6 +17,9 @@ export class AuthService {
     const snap = await this.firebase.firestore.collection('users').where('email', '==', email).limit(1).get();
     if (!snap.empty) throw new ConflictException('Email already exists');
 
+    const adminEmails = (process.env.ADMIN_EMAILS || 'v19plus04@gmail.com').toLowerCase().split(',').map(e => e.trim());
+    const role = adminEmails.includes(email.toLowerCase()) ? 'ADMIN' : 'USER';
+
     const hashedPassword = await bcrypt.hash(passwordPlain, 10);
     const docRef = this.firebase.firestore.collection('users').doc();
     const user = {
@@ -24,7 +27,7 @@ export class AuthService {
       email,
       passwordHash: hashedPassword,
       name: name || 'User',
-      role: 'USER',
+      role,
       createdAt: new Date(),
     };
     await docRef.set(user);
@@ -43,6 +46,13 @@ export class AuthService {
 
     const isMatch = await bcrypt.compare(passwordPlain, user.passwordHash);
     if (!isMatch) throw new UnauthorizedException('Invalid credentials');
+
+    // Auto-promote configured admin email
+    const adminEmails = (process.env.ADMIN_EMAILS || 'v19plus04@gmail.com').toLowerCase().split(',').map(e => e.trim());
+    if (adminEmails.includes(email.toLowerCase()) && user.role !== 'ADMIN') {
+      user.role = 'ADMIN';
+      await this.firebase.firestore.collection('users').doc(user.id).update({ role: 'ADMIN' });
+    }
 
     const payload = { sub: user.id, role: user.role };
     const accessToken = this.jwtService.sign(payload, {
@@ -132,6 +142,9 @@ export class AuthService {
       const email = decoded.email;
       if (!email) throw new UnauthorizedException('Firebase token missing email');
 
+      const adminEmails = (process.env.ADMIN_EMAILS || 'v19plus04@gmail.com').toLowerCase().split(',').map(e => e.trim());
+      const isAdminEmail = adminEmails.includes(email.toLowerCase());
+
       const snap = await this.firebase.firestore.collection('users').where('email', '==', email).limit(1).get();
       let user: any;
       if (snap.empty) {
@@ -142,18 +155,22 @@ export class AuthService {
           name: decoded.name || 'User',
           avatarUrl: decoded.picture || undefined,
           firebaseUid: decoded.uid,
-          role: 'USER',
+          role: isAdminEmail ? 'ADMIN' : 'USER',
           isVerified: true,
           createdAt: new Date(),
         };
         await docRef.set(user);
       } else {
         user = { id: snap.docs[0].id, ...snap.docs[0].data() };
-        if (!user.firebaseUid) {
-          await this.firebase.firestore.collection('users').doc(user.id).update({
-            firebaseUid: decoded.uid,
-            isVerified: true,
-          });
+        const updates: any = {};
+        if (!user.firebaseUid) updates.firebaseUid = decoded.uid;
+        if (isAdminEmail && user.role !== 'ADMIN') {
+          updates.role = 'ADMIN';
+          user.role = 'ADMIN';
+        }
+        if (Object.keys(updates).length > 0) {
+          updates.isVerified = true;
+          await this.firebase.firestore.collection('users').doc(user.id).update(updates);
         }
       }
 
@@ -177,6 +194,9 @@ export class AuthService {
   }
 
   async validateGoogleUser(profile: { email: string; name: string; googleId: string; avatarUrl?: string }) {
+    const adminEmails = (process.env.ADMIN_EMAILS || 'v19plus04@gmail.com').toLowerCase().split(',').map(e => e.trim());
+    const isAdminEmail = adminEmails.includes(profile.email.toLowerCase());
+
     const snap = await this.firebase.firestore.collection('users').where('email', '==', profile.email).limit(1).get();
     
     if (snap.empty) {
@@ -187,7 +207,7 @@ export class AuthService {
         name: profile.name,
         googleId: profile.googleId,
         avatarUrl: profile.avatarUrl,
-        role: 'USER',
+        role: isAdminEmail ? 'ADMIN' : 'USER',
         isVerified: true,
         createdAt: new Date(),
       };
@@ -195,15 +215,16 @@ export class AuthService {
       return user;
     } else {
       let user = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
-      if (!user.googleId) {
-        user.googleId = profile.googleId;
-        user.avatarUrl = user.avatarUrl || profile.avatarUrl;
-        user.isVerified = true;
-        await this.firebase.firestore.collection('users').doc(user.id).update({
-          googleId: user.googleId,
-          avatarUrl: user.avatarUrl,
-          isVerified: true,
-        });
+      const updates: any = {};
+      if (!user.googleId) updates.googleId = profile.googleId;
+      if (profile.avatarUrl && !user.avatarUrl) updates.avatarUrl = profile.avatarUrl;
+      if (isAdminEmail && user.role !== 'ADMIN') {
+        updates.role = 'ADMIN';
+        user.role = 'ADMIN';
+      }
+      if (Object.keys(updates).length > 0) {
+        updates.isVerified = true;
+        await this.firebase.firestore.collection('users').doc(user.id).update(updates);
       }
       return user;
     }
