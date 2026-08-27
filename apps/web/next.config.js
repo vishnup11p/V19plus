@@ -31,6 +31,13 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/.well-known/assetlinks.json',
+        headers: [
+          { key: 'Content-Type', value: 'application/json' },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           { key: 'Access-Control-Allow-Credentials', value: 'true' },
