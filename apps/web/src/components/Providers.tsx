@@ -123,6 +123,16 @@ function CapacitorNativeInit() {
         const { App } = await import('@capacitor/app');
         const { PushNotifications } = await import('@capacitor/push-notifications');
         
+        // 0. Dismiss native splash screen as soon as React mounts
+        try {
+          const splashPlugin = (window as any).Capacitor?.Plugins?.SplashScreen;
+          if (splashPlugin?.hide) {
+            await splashPlugin.hide();
+          }
+        } catch {
+          // Ignore if splash plugin is not active
+        }
+
         // 1. Back button handling
         const backHandle = await App.addListener('backButton', ({ canGoBack }) => {
           if (canGoBack) {

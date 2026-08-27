@@ -300,18 +300,40 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         playbackRate={playbackSpeed}
         width="100%"
         height="100%"
+        playsinline
         config={{
           file: {
-            forceHLS: finalVideoUrl.endsWith('.m3u8'),
-            attributes: { crossOrigin: 'anonymous' },
+            forceHLS: finalVideoUrl.includes('.m3u8'),
+            forceDASH: finalVideoUrl.includes('.mpd'),
+            attributes: {
+              crossOrigin: 'anonymous',
+              playsInline: true,
+              'webkit-playsinline': 'true',
+            },
             tracks: activeTracks,
-          }
+            hlsOptions: {
+              enableWorker: true,
+              lowLatencyMode: false,
+              backBufferLength: 90,
+              maxBufferLength: 30,
+              maxMaxBufferLength: 60,
+              maxBufferSize: 60 * 1000 * 1000,
+              maxBufferHole: 0.5,
+              highBufferWatchdogPeriod: 2,
+              nudgeOffset: 0.1,
+              nudgeMaxRetry: 5,
+              maxFragLookUpTolerance: 0.25,
+              startLevel: -1, // Auto quality selection on start
+              autoStartLoad: true,
+              capLevelToPlayerSize: true, // Optimizes bandwidth to device resolution
+            },
+          },
         }}
         onReady={(player) => {
           const internalPlayer = player.getInternalPlayer('hls');
           if (internalPlayer) {
             hlsPlayerRef.current = internalPlayer;
-            // It's an Hls.js instance
+            // Manifest parsed -> load available bitrate & resolution levels
             internalPlayer.on('hlsManifestParsed', (event: any, data: any) => {
               if (data.levels) {
                 const levels = data.levels.map((l: any, i: number) => ({
@@ -320,6 +342,26 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
                   index: i,
                 })).sort((a: any, b: any) => b.height - a.height); // sort descending
                 usePlayerStore.getState().setQualities(levels);
+              }
+            });
+
+            // Resilient Error Recovery for live & VOD streaming
+            internalPlayer.on('hlsError', (event: any, data: any) => {
+              if (data?.fatal) {
+                switch (data.type) {
+                  case 'networkError':
+                    console.warn('HLS Network Error, attempting auto-reconnect...');
+                    internalPlayer.startLoad();
+                    break;
+                  case 'mediaError':
+                    console.warn('HLS Media Error, attempting recovery...');
+                    internalPlayer.recoverMediaError();
+                    break;
+                  default:
+                    console.error('Fatal unrecoverable HLS error:', data);
+                    setIsError(true);
+                    break;
+                }
               }
             });
           }
