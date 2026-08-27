@@ -260,14 +260,20 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen bg-black cursor-none group"
+      className="relative w-full h-screen bg-black cursor-none group overflow-hidden"
+      style={{
+        transform: 'translateZ(0)',
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
+      }}
       onMouseMove={resetHideTimer}
       onClick={() => (isPlaying ? pause() : resume())}
     >
       {/* Top Bar with Back Button */}
       {showControls && (
         <div
-          className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center gap-4 bg-gradient-to-b from-black/80 to-transparent animate-fade-in"
+          className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center gap-4 bg-gradient-to-b from-black/80 to-transparent animate-fade-in pointer-events-auto"
+          style={{ willChange: 'opacity, transform' }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
@@ -309,23 +315,29 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
               crossOrigin: 'anonymous',
               playsInline: true,
               'webkit-playsinline': 'true',
+              'x5-playsinline': 'true',
+              preload: 'auto',
             },
             tracks: activeTracks,
             hlsOptions: {
-              enableWorker: true,
+              enableWorker: true, // Demux stream on a background Web Worker
               lowLatencyMode: false,
-              backBufferLength: 90,
-              maxBufferLength: 30,
-              maxMaxBufferLength: 60,
-              maxBufferSize: 60 * 1000 * 1000,
+              backBufferLength: 90, // 90s backbuffer for instant seek back
+              maxBufferLength: 30, // 30s forward buffer
+              maxMaxBufferLength: 60, // 60s max forward buffer
+              maxBufferSize: 60 * 1000 * 1000, // 60MB max buffer ceiling to prevent memory pressure
               maxBufferHole: 0.5,
               highBufferWatchdogPeriod: 2,
               nudgeOffset: 0.1,
               nudgeMaxRetry: 5,
               maxFragLookUpTolerance: 0.25,
-              startLevel: -1, // Auto quality selection on start
+              startLevel: -1, // Auto ABR (Adaptive Bitrate) selection on startup
               autoStartLoad: true,
-              capLevelToPlayerSize: true, // Optimizes bandwidth to device resolution
+              capLevelToPlayerSize: true, // Caps stream resolution to device display to save GPU & bandwidth
+              abrEwmaDefaultEstimate: 5000000, // 5 Mbps default estimate
+              abrBandWidthFactor: 0.9,
+              abrBandWidthUpFactor: 0.7,
+              abrMaxWithRealBitrate: true,
             },
           },
         }}
@@ -345,16 +357,16 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
               }
             });
 
-            // Resilient Error Recovery for live & VOD streaming
+            // Resilient Error Recovery for live & VOD streaming across 3G/4G/WiFi
             internalPlayer.on('hlsError', (event: any, data: any) => {
               if (data?.fatal) {
                 switch (data.type) {
                   case 'networkError':
-                    console.warn('HLS Network Error, attempting auto-reconnect...');
+                    console.warn('HLS Network Error, recovering stream...');
                     internalPlayer.startLoad();
                     break;
                   case 'mediaError':
-                    console.warn('HLS Media Error, attempting recovery...');
+                    console.warn('HLS Media Error, recovering media buffer...');
                     internalPlayer.recoverMediaError();
                     break;
                   default:
@@ -364,6 +376,17 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
                 }
               }
             });
+          } else {
+            // Fallback for native HLS (Safari/iOS/Android Native) or direct MP4/WebM
+            const videoElem = containerRef.current?.querySelector('video');
+            if (videoElem) {
+              const canPlayHLS = videoElem.canPlayType('application/vnd.apple.mpegurl');
+              const canPlayMP4 = videoElem.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
+              const canPlayWebM = videoElem.canPlayType('video/webm; codecs="vp9, opus"');
+              if (!canPlayHLS && !canPlayMP4 && !canPlayWebM && finalVideoUrl.includes('.m3u8')) {
+                console.warn('Native HLS not directly supported by HTML5 element; relying on MSE engine');
+              }
+            }
           }
         }}
         onProgress={({ playedSeconds }) => updateProgress(playedSeconds)}
