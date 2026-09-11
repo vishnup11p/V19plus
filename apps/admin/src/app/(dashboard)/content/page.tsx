@@ -48,6 +48,9 @@ export default function AdminContent() {
   // Video Upload States
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [episodeNumber, setEpisodeNumber] = useState<number>(1);
+  const [uploadProgressText, setUploadProgressText] = useState<string>('');
+  const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['admin-content'],
@@ -100,19 +103,32 @@ export default function AdminContent() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: ({ contentId, file }: { contentId: string; file: File }) => {
+    mutationFn: async ({ contentId, file }: { contentId: string; file: File }) => {
+      if (file.type !== 'video/mp4' && !file.name.toLowerCase().endsWith('.mp4')) {
+        throw new Error('Invalid video format. Only MP4 files are accepted.');
+      }
+      setIsUploadingFile(true);
+      setUploadProgressText(`Uploading Episode ${episodeNumber} [░░░░░░░░░░░░░░░░░░] 0%`);
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('contentId', contentId);
+      formData.append('episodeNumber', String(episodeNumber));
+
       return adminApi.uploadVideo(formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-content'] });
-      toast.success('Video uploaded & HLS transcoding initiated in background!');
-      resetForm();
+      setUploadProgressText(`Uploading Episode ${episodeNumber} [██████████████████] 100%`);
+      toast.success('Episode uploaded successfully.');
+      setTimeout(() => {
+        setIsUploadingFile(false);
+        resetForm();
+      }, 1200);
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.message || 'Video upload failed';
+      setIsUploadingFile(false);
+      const msg = err?.response?.data?.message || err?.message || 'The video upload failed. Please try again.';
       toast.error(msg);
     },
   });
@@ -123,6 +139,8 @@ export default function AdminContent() {
     setShowForm(false);
     setUploadingId(null);
     setSelectedFile(null);
+    setUploadProgressText('');
+    setIsUploadingFile(false);
   };
 
   const startEdit = (item: ContentItem) => {
@@ -577,49 +595,58 @@ export default function AdminContent() {
 
                   {/* Expandable Video Upload Field */}
                   {isUploading && (
-                    <div className="pt-2 border-t border-[#2d2d2d] flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                      <div className="flex-1 relative">
-                        <input
-                          type="file"
-                          accept="video/*"
-                          onChange={handleFileChange}
-                          id={`file-upload-${item.id}`}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor={`file-upload-${item.id}`}
-                          className="flex items-center gap-2 px-4 py-2.5 bg-[#0f0f0f] border border-[#2d2d2d] hover:border-[#333] rounded-xl text-xs text-gray-400 hover:text-white cursor-pointer transition-colors"
-                        >
-                          <FileVideo className="w-4 h-4 shrink-0 text-red-500" />
-                          <span className="truncate">
-                            {selectedFile ? selectedFile.name : 'Choose raw video file...'}
-                          </span>
-                        </label>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleUploadSubmit(item.id)}
-                          disabled={!selectedFile || uploadMutation.isPending}
-                          className="flex-1 sm:flex-none px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          {uploadMutation.isPending ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            'Start Upload'
-                          )}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setUploadingId(null);
-                            setSelectedFile(null);
-                          }}
-                          className="px-3 py-2.5 bg-[#222] hover:bg-[#2a2a2a] text-gray-300 text-xs font-semibold rounded-xl transition-colors"
-                        >
-                          Cancel
-                        </button>
+                    <div className="pt-2 border-t border-[#2d2d2d] flex flex-col gap-3">
+                      {uploadProgressText && (
+                        <div className="bg-red-500/10 border border-red-500/30 text-red-400 font-mono text-xs px-3 py-2 rounded-xl flex items-center gap-2">
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500 shrink-0" />
+                          <span>{uploadProgressText}</span>
+                        </div>
+                      )}
+                      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                        <div className="flex-1 relative">
+                          <input
+                            type="file"
+                            accept="video/mp4"
+                            onChange={handleFileChange}
+                            id={`file-upload-${item.id}`}
+                            className="hidden"
+                          />
+                          <label
+                            htmlFor={`file-upload-${item.id}`}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-[#0f0f0f] border border-[#2d2d2d] hover:border-[#333] rounded-xl text-xs text-gray-400 hover:text-white cursor-pointer transition-colors"
+                          >
+                            <FileVideo className="w-4 h-4 shrink-0 text-red-500" />
+                            <span className="truncate">
+                              {selectedFile ? selectedFile.name : 'Choose raw MP4 video file...'}
+                            </span>
+                          </label>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleUploadSubmit(item.id)}
+                            disabled={!selectedFile || uploadMutation.isPending}
+                            className="flex-1 sm:flex-none px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            {uploadMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              'Start Upload'
+                            )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setUploadingId(null);
+                              setSelectedFile(null);
+                              setUploadProgressText('');
+                            }}
+                            className="px-3 py-2.5 bg-[#222] hover:bg-[#2a2a2a] text-gray-300 text-xs font-semibold rounded-xl transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

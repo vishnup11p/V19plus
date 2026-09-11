@@ -78,11 +78,74 @@ The monorepo under `apps/` is the active production stack.
 | `npm run mobile:init` | Initialize Capacitor Android project |
 | `npm run mobile:android` | Open Android Studio to build APK |
 
+## Firebase Integration & Configuration Guide
+
+### 1. Create a Firebase Project
+1. Go to the [Firebase Console](https://console.firebase.google.com/).
+2. Click **Add Project**, name your project (e.g. `v19-plus`), and complete creation.
+3. In **Project Settings** > **General**, click **Add app** and select **Web** (`</>`).
+4. Copy the generated `firebaseConfig` keys.
+
+### 2. Enable Cloud Firestore & Cloud Storage
+1. **Cloud Firestore**:
+   - Go to **Build** > **Firestore Database** > **Create Database**.
+   - Select production mode and your preferred data center location.
+2. **Cloud Storage**:
+   - Go to **Build** > **Storage** > **Get Started**.
+   - Select standard location and start in production mode.
+
+### 3. Configure Environment Variables
+Copy `.env.example` to `.env` and fill in your Firebase values:
+
+```env
+# Frontend Firebase Client Credentials
+NEXT_PUBLIC_FIREBASE_API_KEY="AIzaSy..."
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="v19-plus.firebaseapp.com"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="v19-plus"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="v19-plus.firebasestorage.app"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="123456789"
+NEXT_PUBLIC_FIREBASE_APP_ID="1:123456789:web:abc123def456"
+
+# Backend Firebase Admin Service Account
+FIREBASE_PROJECT_ID="v19-plus"
+FIREBASE_STORAGE_BUCKET="v19-plus.firebasestorage.app"
+FIREBASE_SERVICE_ACCOUNT_BASE64="ey...==" # Base64 encoded service account JSON
+```
+
+### 4. Deploy Firestore & Storage Security Rules
+Install Firebase CLI and deploy the rules:
+
+```bash
+# Login to Firebase CLI
+npx firebase-tools login
+
+# Deploy Security Rules to Firebase
+npx firebase-tools deploy --only firestore:rules,storage
+```
+
+### 5. Create the First Admin User
+1. Register a new user via the app interface or Firebase Authentication console.
+2. Add your admin email to `ADMIN_EMAILS` in `.env`:
+   ```env
+   ADMIN_EMAILS="v19plus04@gmail.com,admin@v19plus.com"
+   ```
+3. Upon signing in, the backend will auto-promote your user account to `ADMIN` role in Firestore.
+
+### 6. Uploading the First Series & Episode
+1. Log in to the Admin Panel (`http://localhost:3001` or your production domain).
+2. Go to **Content Manager** > **Add Title**.
+3. Create your Series entry (Title, Summary, Type = `SERIES`, Poster URL).
+4. Click **Upload** next to the series title.
+5. Select your raw **MP4 video file** (`video/mp4`).
+6. The upload progress will render in real time (`Uploading Episode [██████████████░░░░] 72%`).
+7. Upon completion, the file will be stored in Storage at `videos/{seriesId}/episode-001.mp4` and metadata linked in Firestore.
+
 ## Production deployment
 
 See **[DEPLOYMENT.md](./DEPLOYMENT.md)** for the full guide:
 
-- **Database:** Supabase PostgreSQL
+- **Database:** Supabase PostgreSQL & Firebase Firestore
 - **API:** Render
 - **Web + Admin:** Vercel (two projects)
 - **Mobile:** Capacitor Android APK
+
