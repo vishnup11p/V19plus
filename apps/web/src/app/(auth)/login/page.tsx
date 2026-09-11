@@ -17,7 +17,14 @@ export default function LoginPage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const returnUrl    = searchParams.get('returnUrl') || '/browse';
+  const urlError     = searchParams.get('error');
   const { login, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    if (urlError === 'google_auth_failed' || urlError === 'google_auth_error') {
+      setError('Google Sign-In failed or was cancelled. Please try again.');
+    }
+  }, [urlError]);
 
   useEffect(() => {
     if (isAuthenticated) {

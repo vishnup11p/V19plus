@@ -17,7 +17,14 @@ export default function SignupPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get('returnUrl') || '/browse';
+  const urlError = searchParams.get('error');
   const { signup } = useAuthStore();
+
+  useEffect(() => {
+    if (urlError === 'google_auth_failed' || urlError === 'google_auth_error') {
+      setError('Google Sign-In failed or was cancelled. Please try again.');
+    }
+  }, [urlError]);
 
   const validatePassword = (pw: string) => {
     if (pw.length < 8) return 'Password must be at least 8 characters.';

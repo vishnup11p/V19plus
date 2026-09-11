@@ -37,6 +37,12 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="v19plus-web.vercel.app" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="v19plus-web--v19-plus.asia-southeast1.hosted.app" />
+            </intent-filter>
         </activity>
 
         <provider

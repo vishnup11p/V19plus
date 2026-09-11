@@ -68,10 +68,12 @@ export class VideoProcessService {
 
     const masterPlaylistPath = path.join(outputDir, 'master.m3u8');
     const resolutions = [
-      { width: 640, height: 360, name: '360p', bitrate: '800k', maxrate: '856k', bufsize: '1200k' },
-      { width: 854, height: 480, name: '480p', bitrate: '1400k', maxrate: '1498k', bufsize: '2100k' },
-      { width: 1280, height: 720, name: '720p', bitrate: '2800k', maxrate: '2996k', bufsize: '4200k' },
-      { width: 1920, height: 1080, name: '1080p', bitrate: '5000k', maxrate: '5350k', bufsize: '7500k' },
+      { width: 256, height: 144, name: '144p', bitrate: '250k', maxrate: '270k', bufsize: '400k', bw: 250000 },
+      { width: 426, height: 240, name: '240p', bitrate: '400k', maxrate: '430k', bufsize: '600k', bw: 400000 },
+      { width: 640, height: 360, name: '360p', bitrate: '800k', maxrate: '856k', bufsize: '1200k', bw: 800000 },
+      { width: 854, height: 480, name: '480p', bitrate: '1400k', maxrate: '1498k', bufsize: '2100k', bw: 1400000 },
+      { width: 1280, height: 720, name: '720p', bitrate: '2800k', maxrate: '2996k', bufsize: '4200k', bw: 2800000 },
+      { width: 1920, height: 1080, name: '1080p', bitrate: '5000k', maxrate: '5350k', bufsize: '7500k', bw: 5000000 },
     ];
 
     // Compute the final video URL upfront (same URL that will be set after transcoding)
@@ -140,13 +142,15 @@ export class VideoProcessService {
             `-vf scale=w='min(${res.width},iw)':h='min(${res.height},ih)':force_original_aspect_ratio=decrease,pad=ceil(ow/2)*2:ceil(oh/2)*2`,
             '-c:v libx264',
             '-pix_fmt yuv420p',
+            '-g 96',
+            '-keyint_min 96',
             `-b:v ${res.bitrate}`,
             `-maxrate ${res.maxrate}`,
             `-bufsize ${res.bufsize}`,
             '-c:a aac',
             '-ar 48000',
             '-b:a 128k',
-            '-hls_time 10',
+            '-hls_time 4',
             '-hls_playlist_type event',
             `-hls_segment_filename ${path.join(outputDir, `${res.name}_%03d.ts`)}`,
           ])
@@ -155,7 +159,7 @@ export class VideoProcessService {
             this.logger.log(`✅ Finished transcoding resolution ${res.name} for ${uniqueId}`);
             completedResolutions++;
 
-            masterContent += `#EXT-X-STREAM-INF:BANDWIDTH=${res.name === '360p' ? 800000 : res.name === '480p' ? 1400000 : res.name === '720p' ? 2800000 : 5000000},RESOLUTION=${res.width}x${res.height}\n${res.name}.m3u8\n`;
+            masterContent += `#EXT-X-STREAM-INF:BANDWIDTH=${res.bw},RESOLUTION=${res.width}x${res.height}\n${res.name}.m3u8\n`;
 
             if (completedResolutions === resolutions.length) {
               fs.writeFileSync(masterPath, masterContent);

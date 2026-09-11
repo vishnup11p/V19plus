@@ -77,25 +77,32 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(PassportAuthGuard('google'))
   async googleAuthRedirect(@Req() req: any, @Res({ passthrough: true }) res: Response) {
-    const user = req.user;
-    // We need to generate token for this user
-    const payload = { sub: user.id, role: user.role };
-    const accessToken = this.authService['jwtService'].sign(payload, {
-      secret: process.env.JWT_ACCESS_SECRET || 'secret',
-      expiresIn: '15m',
-    });
-    const refreshToken = this.authService['jwtService'].sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET || 'refresh_secret',
-      expiresIn: '7d',
-    });
-
-    const deviceId = 'google-oauth-login';
-    await this.authService['redisService'].set(`refresh_token:${user.id}:${deviceId}`, refreshToken, 60 * 60 * 24 * 7);
-
-    this.authService.setCookies(res, accessToken, refreshToken);
+    const frontendBase = (process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://v19plus-web.vercel.app').replace(/\/$/, '');
     
-    // Redirect back to frontend
-    const frontendBase = process.env.FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://v19plus-web.vercel.app';
-    res.redirect(`${frontendBase.replace(/\/$/, '')}/browse`);
+    try {
+      const user = req.user;
+      if (!user || !user.id) {
+        return res.redirect(`${frontendBase}/login?error=google_auth_failed`);
+      }
+
+      const payload = { sub: user.id, role: user.role };
+      const accessToken = this.authService['jwtService'].sign(payload, {
+        secret: process.env.JWT_ACCESS_SECRET || 'secret',
+        expiresIn: '15m',
+      });
+      const refreshToken = this.authService['jwtService'].sign(payload, {
+        secret: process.env.JWT_REFRESH_SECRET || 'refresh_secret',
+        expiresIn: '7d',
+      });
+
+      const deviceId = 'google-oauth-login';
+      await this.authService['redisService'].set(`refresh_token:${user.id}:${deviceId}`, refreshToken, 60 * 60 * 24 * 7);
+
+      this.authService.setCookies(res, accessToken, refreshToken);
+      
+      return res.redirect(`${frontendBase}/browse`);
+    } catch (err) {
+      return res.redirect(`${frontendBase}/login?error=google_auth_error`);
+    }
   }
 }

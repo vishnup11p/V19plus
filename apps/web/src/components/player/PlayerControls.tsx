@@ -233,48 +233,50 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
 
               {showSettings && (
                 <div
-                  className="absolute bottom-full right-0 mb-2 bg-black/95 border border-white/10 rounded-lg overflow-hidden w-48 flex"
+                  className="absolute bottom-full right-0 mb-2 bg-black/95 border border-white/10 rounded-xl overflow-hidden shadow-2xl backdrop-blur-md min-w-[200px] flex flex-col p-2 gap-2 text-white"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex-1 border-r border-white/10">
-                    <p className="text-xs text-white/50 px-3 py-2 border-b border-white/10">Speed</p>
-                    {SPEEDS.map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => { setPlaybackSpeed(s); setShowSettings(false); }}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                          playbackSpeed === s ? 'text-n-red' : 'text-white hover:bg-white/10'
-                        }`}
-                      >
-                        {s === 1 ? 'Normal' : `${s}×`}
-                      </button>
-                    ))}
-                  </div>
-
-                  {usePlayerStore.getState().qualities.length > 0 && (
-                    <div className="flex-1">
-                      <p className="text-xs text-white/50 px-3 py-2 border-b border-white/10">Quality</p>
-                      <button
-                        onClick={() => { usePlayerStore.getState().setQuality(-1); setShowSettings(false); }}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                          usePlayerStore.getState().currentQuality === -1 ? 'text-n-red' : 'text-white hover:bg-white/10'
-                        }`}
-                      >
-                        Auto
-                      </button>
-                      {usePlayerStore.getState().qualities.map((q) => (
+                  <div>
+                    <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 py-1">Playback Speed</p>
+                    <div className="flex flex-wrap gap-1 px-2 py-1">
+                      {SPEEDS.map((s) => (
                         <button
-                          key={q.index}
-                          onClick={() => { usePlayerStore.getState().setQuality(q.index); setShowSettings(false); }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                            usePlayerStore.getState().currentQuality === q.index ? 'text-n-red' : 'text-white hover:bg-white/10'
+                          key={s}
+                          onClick={() => { setPlaybackSpeed(s); setShowSettings(false); }}
+                          className={`px-2.5 py-1 text-xs rounded transition-colors ${
+                            playbackSpeed === s ? 'bg-n-red text-white font-bold' : 'text-white/80 hover:bg-white/10'
                           }`}
                         >
-                          {q.height}p
+                          {s === 1 ? '1×' : `${s}×`}
                         </button>
                       ))}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="border-t border-white/10 pt-2">
+                    <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wider px-3 py-1">Quality</p>
+                    <button
+                      onClick={() => { usePlayerStore.getState().setQuality(-1); setShowSettings(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-xs rounded flex items-center justify-between transition-colors ${
+                        usePlayerStore.getState().currentQuality === -1 ? 'text-n-red font-bold bg-white/5' : 'text-white/80 hover:bg-white/10'
+                      }`}
+                    >
+                      <span>Auto</span>
+                      {usePlayerStore.getState().currentQuality === -1 && <span>✓</span>}
+                    </button>
+                    {usePlayerStore.getState().qualities.map((q) => (
+                      <button
+                        key={q.index}
+                        onClick={() => { usePlayerStore.getState().setQuality(q.index); setShowSettings(false); }}
+                        className={`w-full text-left px-3 py-1.5 text-xs rounded flex items-center justify-between transition-colors ${
+                          usePlayerStore.getState().currentQuality === q.index ? 'text-n-red font-bold bg-white/5' : 'text-white/80 hover:bg-white/10'
+                        }`}
+                      >
+                        <span>{q.height}p</span>
+                        {usePlayerStore.getState().currentQuality === q.index && <span>✓</span>}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

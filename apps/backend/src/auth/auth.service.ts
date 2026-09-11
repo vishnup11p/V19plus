@@ -197,18 +197,19 @@ export class AuthService {
     const adminEmails = (process.env.ADMIN_EMAILS || 'v19plus04@gmail.com').toLowerCase().split(',').map(e => e.trim());
     const isAdminEmail = adminEmails.includes(profile.email.toLowerCase());
 
-    const snap = await this.firebase.firestore.collection('users').where('email', '==', profile.email).limit(1).get();
+    const snap = await this.firebase.firestore.collection('users').where('email', '==', profile.email.toLowerCase()).limit(1).get();
     
     if (snap.empty) {
       const docRef = this.firebase.firestore.collection('users').doc();
       const user = {
         id: docRef.id,
-        email: profile.email,
+        email: profile.email.toLowerCase(),
         name: profile.name,
         googleId: profile.googleId,
-        avatarUrl: profile.avatarUrl,
+        avatarUrl: profile.avatarUrl || null,
         role: isAdminEmail ? 'ADMIN' : 'USER',
         isVerified: true,
+        authProvider: 'google',
         createdAt: new Date(),
       };
       await docRef.set(user);
@@ -218,15 +219,16 @@ export class AuthService {
       const updates: any = {};
       if (!user.googleId) updates.googleId = profile.googleId;
       if (profile.avatarUrl && !user.avatarUrl) updates.avatarUrl = profile.avatarUrl;
+      if (!user.isVerified) updates.isVerified = true;
       if (isAdminEmail && user.role !== 'ADMIN') {
         updates.role = 'ADMIN';
         user.role = 'ADMIN';
       }
       if (Object.keys(updates).length > 0) {
-        updates.isVerified = true;
+        updates.updatedAt = new Date();
         await this.firebase.firestore.collection('users').doc(user.id).update(updates);
       }
-      return user;
+      return { ...user, ...updates };
     }
   }
 }
