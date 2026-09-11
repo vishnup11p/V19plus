@@ -4,13 +4,17 @@ import * as fs from 'fs';
 import * as ffmpeg from 'fluent-ffmpeg';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { FirebaseService } from '../firebase/firebase.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class VideoProcessService {
   private readonly logger = new Logger(VideoProcessService.name);
   private s3Client: S3Client | null = null;
 
-  constructor(private readonly firebase: FirebaseService) {
+  constructor(
+    private readonly firebase: FirebaseService,
+    private readonly redis: RedisService,
+  ) {
     if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
       this.s3Client = new S3Client({
         region: process.env.AWS_REGION || 'us-east-1',
@@ -87,7 +91,7 @@ export class VideoProcessService {
       videoUrl = `https://storage.googleapis.com/${firebaseBucket.name}/uploads/${uniqueId}/master.m3u8`;
     }
 
-    // ✅ Update Firestore IMMEDIATELY so admin panel shows "HLS Stream Linked" right away
+    // ✅ Update Firestore IMMEDIATELY so admin panel & app show stream linked right away
     try {
       if (isEpisode && episodeId) {
         const doc = await this.firebase.firestore.collection('content').doc(contentId).get();
@@ -106,7 +110,9 @@ export class VideoProcessService {
       } else {
         await this.firebase.firestore.collection('content').doc(contentId).update({ videoUrl });
       }
-      this.logger.log(`✅ videoUrl set immediately in Firestore for ${uniqueId}`);
+      await this.redis.del('content:featured');
+      await this.redis.del('content:trending');
+      this.logger.log(`✅ videoUrl set immediately in Firestore & caches invalidated for ${uniqueId}`);
     } catch (e) {
       this.logger.error(`Failed to set initial videoUrl for ${uniqueId}:`, e);
     }

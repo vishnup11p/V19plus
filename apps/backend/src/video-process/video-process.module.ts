@@ -3,11 +3,13 @@ import { MulterModule } from '@nestjs/platform-express';
 import { VideoProcessService } from './video-process.service';
 import { VideoProcessController } from './video-process.controller';
 import { AuthModule } from '../auth/auth.module';
+import { RedisModule } from '../redis/redis.module';
 import * as fs from 'fs';
 
 @Module({
   imports: [
     AuthModule,
+    RedisModule,
     MulterModule.register({
       dest: './uploads/temp',
     }),
