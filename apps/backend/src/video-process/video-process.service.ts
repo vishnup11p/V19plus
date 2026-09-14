@@ -147,6 +147,8 @@ export class VideoProcessService {
             // Scale down to target resolution but NEVER upscale beyond the source
             `-vf scale=w='min(${res.width},iw)':h='min(${res.height},ih)':force_original_aspect_ratio=decrease,pad=ceil(ow/2)*2:ceil(oh/2)*2`,
             '-c:v libx264',
+            '-preset superfast',
+            '-threads 0',
             '-pix_fmt yuv420p',
             '-g 96',
             '-keyint_min 96',

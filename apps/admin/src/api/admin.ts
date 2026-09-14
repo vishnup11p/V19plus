@@ -86,8 +86,9 @@ export const adminApi = {
   createContent: (data: Partial<AdminContent>) => api.post('/admin/content', data),
   updateContent: (id: string, data: Partial<AdminContent>) => api.put(`/admin/content/${id}`, data),
   deleteContent: (id: string) => api.delete(`/admin/content/${id}`),
-  uploadVideo: (formData: FormData) => api.post('/video-process/upload', formData, {
+  uploadVideo: (formData: FormData, onProgress?: (progressEvent: any) => void) => api.post('/video-process/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 300_000,
+    timeout: 600_000,
+    onUploadProgress: onProgress,
   }),
 };

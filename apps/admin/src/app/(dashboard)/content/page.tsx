@@ -115,7 +115,16 @@ export default function AdminContent() {
       formData.append('contentId', contentId);
       formData.append('episodeNumber', String(episodeNumber));
 
-      return adminApi.uploadVideo(formData);
+      return adminApi.uploadVideo(formData, (progressEvent: any) => {
+        if (progressEvent.total) {
+          const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const totalBlocks = 18;
+          const filled = Math.round((pct / 100) * totalBlocks);
+          const empty = totalBlocks - filled;
+          const bar = '█'.repeat(filled) + '░'.repeat(empty);
+          setUploadProgressText(`Uploading Episode ${episodeNumber} [${bar}] ${pct}%`);
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-content'] });
