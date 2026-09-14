@@ -80,18 +80,23 @@ export class VideoProcessService {
       { width: 1920, height: 1080, name: '1080p', bitrate: '5000k', maxrate: '5350k', bufsize: '7500k', bw: 5000000 },
     ];
 
-    // Compute the final video URL upfront (same URL that will be set after transcoding)
-    let videoUrl: string;
-    if (this.s3Client) {
-      const bucket = process.env.AWS_S3_BUCKET || 'v19plus-assets';
-      const region = process.env.AWS_REGION || 'us-east-1';
-      videoUrl = `https://${bucket}.s3.${region}.amazonaws.com/uploads/${uniqueId}/master.m3u8`;
-    } else {
-      const firebaseBucket = this.firebase.storage.bucket();
-      videoUrl = `https://storage.googleapis.com/${firebaseBucket.name}/uploads/${uniqueId}/master.m3u8`;
+    // 1. Upload raw source video to Firebase Storage immediately so video is 100% playable instantly
+    let initialVideoUrl: string;
+    try {
+      if (this.s3Client) {
+        initialVideoUrl = await this.uploadFileToS3(inputFilePath, `uploads/${uniqueId}/source.mp4`);
+      } else {
+        initialVideoUrl = await this.uploadFileToFirebase(inputFilePath, `uploads/${uniqueId}/source.mp4`);
+      }
+      this.logger.log(`✅ Source video uploaded & publicly accessible immediately at ${initialVideoUrl}`);
+    } catch (e) {
+      this.logger.warn(`Source video pre-upload warning for ${uniqueId}:`, e);
+      initialVideoUrl = this.s3Client
+        ? `https://${process.env.AWS_S3_BUCKET || 'v19plus-assets'}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/uploads/${uniqueId}/master.m3u8`
+        : `https://storage.googleapis.com/${this.firebase.storage.bucket().name}/uploads/${uniqueId}/master.m3u8`;
     }
 
-    // ✅ Update Firestore IMMEDIATELY so admin panel & app show stream linked right away
+    // ✅ Update Firestore IMMEDIATELY with initialVideoUrl so video is instantly playable in app
     try {
       if (isEpisode && episodeId) {
         const doc = await this.firebase.firestore.collection('content').doc(contentId).get();
@@ -101,27 +106,27 @@ export class VideoProcessService {
           for (const season of seasons) {
             for (const ep of season.episodes) {
               if (ep.id === episodeId) {
-                ep.videoUrl = videoUrl;
+                ep.videoUrl = initialVideoUrl;
               }
             }
           }
           await this.firebase.firestore.collection('content').doc(contentId).update({ seasons });
         }
       } else {
-        await this.firebase.firestore.collection('content').doc(contentId).update({ videoUrl });
+        await this.firebase.firestore.collection('content').doc(contentId).update({ videoUrl: initialVideoUrl });
       }
       await this.redis.del('content:featured');
       await this.redis.del('content:trending');
-      this.logger.log(`✅ videoUrl set immediately in Firestore & caches invalidated for ${uniqueId}`);
+      this.logger.log(`✅ Initial videoUrl set in Firestore & caches cleared for ${uniqueId}`);
     } catch (e) {
       this.logger.error(`Failed to set initial videoUrl for ${uniqueId}:`, e);
     }
 
-    // Asynchronously kick off transcoding in the background
+    // 2. Asynchronously kick off HLS transcoding in background to generate master.m3u8
     this.runTranscode(inputFilePath, outputDir, masterPlaylistPath, resolutions, uniqueId, isEpisode, contentId)
-      .catch((err) => this.logger.error(`Failed to transcode video for ${uniqueId}:`, err));
+      .catch((err) => this.logger.error(`Failed to transcode HLS video for ${uniqueId}:`, err));
 
-    return videoUrl;
+    return initialVideoUrl;
   }
 
   private runTranscode(
