@@ -120,9 +120,26 @@ export const useAuthStore = create<AuthState>()(
         if (!get()._initialized) {
           set({ isLoading: true });
         }
+
+        // Safety timeout: Never leave isLoading true for more than 4 seconds even on slow/offline backend
+        const safetyTimer = setTimeout(() => {
+          if (get().isLoading) {
+            set({ isLoading: false, _initialized: true });
+          }
+        }, 4000);
+
         try {
           let token = get().accessToken;
-          if (!token) {
+          const hasRefreshToken = get().refreshToken || (typeof document !== 'undefined' && document.cookie.includes('refreshToken='));
+          
+          // If no access token and no refresh token exists, resolve immediately without hanging network call
+          if (!token && !hasRefreshToken) {
+            clearTimeout(safetyTimer);
+            set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
+            return;
+          }
+
+          if (!token && hasRefreshToken) {
             const { data: refreshData } = await authApi.refresh({ ...getDeviceInfo(), refreshToken: get().refreshToken });
             token = refreshData.accessToken;
             if (typeof window !== 'undefined') {
@@ -131,15 +148,16 @@ export const useAuthStore = create<AuthState>()(
             }
             set({ accessToken: token });
           }
+
           const { data } = await authApi.me();
+          clearTimeout(safetyTimer);
           set({ user: data, isAuthenticated: true, isLoading: false, _initialized: true });
         } catch (error: any) {
+          clearTimeout(safetyTimer);
           const status = error.response?.status;
-          // Only clear session if it is a client/auth error (400-499)
           if (status && status >= 400 && status < 500) {
             set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false, isLoading: false, _initialized: true });
           } else {
-            // Keep credentials on network/server errors so we don't log them out
             set({ isLoading: false, _initialized: true });
           }
         }

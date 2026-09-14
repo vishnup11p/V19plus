@@ -208,7 +208,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   if (!hasVideo || isError) {
     const errorTitle = isError ? "Playback Error" : "Content Unavailable";
     const errorMsg = isError 
-      ? "We encountered an error playing this video. Please try again later."
+      ? "We encountered a playback error loading this video. Please check your connection and try again."
       : "We're sorry, but this content is currently not streaming in your region or the video file is missing.";
 
     return (
@@ -234,12 +234,25 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
           <p className="text-sm text-gray-400 leading-relaxed">
             {errorMsg}
           </p>
-          <button
-            onClick={() => router.back()}
-            className="mt-2 px-6 py-2.5 bg-n-red hover:bg-n-red-hover text-white font-bold rounded-md text-sm transition-all hover:scale-105 active:scale-95 shadow-lg shadow-red-500/20"
-          >
-            Go Back
-          </button>
+          <div className="flex gap-3 mt-2">
+            {isError && (
+              <button
+                onClick={() => {
+                  setIsError(false);
+                  setIsBuffering(true);
+                }}
+                className="px-6 py-2.5 bg-n-red hover:bg-n-red-hover text-white font-bold rounded-md text-sm transition-all hover:scale-105 active:scale-95 shadow-lg shadow-red-500/20"
+              >
+                Retry Playback
+              </button>
+            )}
+            <button
+              onClick={() => router.back()}
+              className="px-6 py-2.5 bg-[#2a2a2a] hover:bg-[#333] text-white font-bold rounded-md text-sm transition-all active:scale-95"
+            >
+              Go Back
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -312,7 +325,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
             forceHLS: finalVideoUrl.includes('.m3u8'),
             forceDASH: finalVideoUrl.includes('.mpd'),
             attributes: {
-              crossOrigin: 'anonymous',
+              ...(activeTracks.length > 0 ? { crossOrigin: 'anonymous' } : {}),
               playsInline: true,
               'webkit-playsinline': 'true',
               'x5-playsinline': 'true',
