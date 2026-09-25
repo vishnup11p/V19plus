@@ -85,4 +85,20 @@ export class UpdateContentDto {
   @IsArray({ message: 'Tags must be an array of strings' })
   @IsString({ each: true, message: 'Each tag must be a string' })
   tags?: string[];
+
+  @IsOptional()
+  @IsString()
+  language?: string;
+
+  @IsOptional()
+  @IsString()
+  status?: string;
+
+  @IsOptional()
+  @IsArray()
+  cast?: any[];
+
+  @IsOptional()
+  @IsArray()
+  seasons?: any[];
 }
