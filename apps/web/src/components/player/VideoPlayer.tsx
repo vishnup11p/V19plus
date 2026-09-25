@@ -34,13 +34,12 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     play, pause, resume, seek, setShowControls, updateProgress, saveProgressNow,
   } = usePlayerStore();
 
-  const episode = content.seasons
-    ?.flatMap((s) => s.episodes)
-    .find((e) => e.id === episodeId);
+  const allEpisodes = content.seasons?.flatMap((s) => s.episodes) || [];
+  const episode = (episodeId ? allEpisodes.find((e) => e.id === episodeId) : null) || allEpisodes[0];
 
   const rawVideoUrl = (episode?.videoUrl || content.videoUrl || '').trim();
   const { downloads } = useDownloadStore();
-  const downloadItem = downloads[episodeId || content.id];
+  const downloadItem = downloads[episode?.id || episodeId || content.id];
   const finalVideoUrl = (downloadItem && downloadItem.status === 'completed' && downloadItem.localUri)
     ? (typeof (Capacitor as any)?.convertFileSrc === 'function' && Capacitor.isNativePlatform()
         ? (Capacitor as any).convertFileSrc(downloadItem.localUri)
@@ -48,8 +47,9 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     : rawVideoUrl;
 
   const totalDuration = episode?.duration ? episode.duration * 60 : (content.duration || 0) * 60;
-  const nextEpisode = content.seasons?.flatMap((s) => s.episodes).find((e, i, arr) => {
-    const idx = arr.findIndex((ep) => ep.id === episodeId);
+  const nextEpisode = allEpisodes.find((e, i, arr) => {
+    const activeId = episode?.id || episodeId;
+    const idx = arr.findIndex((ep) => ep.id === activeId);
     return idx >= 0 && i === idx + 1;
   });
 
@@ -345,7 +345,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
             forceHLS: activeVideoUrl.includes('.m3u8'),
             forceDASH: activeVideoUrl.includes('.mpd'),
             attributes: {
-              ...(activeTracks.length > 0 ? { crossOrigin: 'anonymous' } : {}),
+              ...(activeTracks.length > 0 && !activeVideoUrl.includes('firebasestorage.googleapis.com') ? { crossOrigin: 'anonymous' } : {}),
               playsInline: true,
               'webkit-playsinline': 'true',
               'x5-playsinline': 'true',

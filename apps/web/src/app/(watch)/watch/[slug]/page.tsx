@@ -60,7 +60,8 @@ export default function WatchPage({ params }: { params: { slug: string } }) {
   }
 
   const allEpisodes: Episode[] = content.seasons?.flatMap((s: Season) => s.episodes) || [];
-  const currentIndex = allEpisodes.findIndex((e: Episode) => e.id === episodeId);
+  const activeEpisodeId = episodeId || allEpisodes[0]?.id;
+  const currentIndex = allEpisodes.findIndex((e: Episode) => e.id === activeEpisodeId);
 
   const handleNextEpisode = () => {
     if (currentIndex >= 0 && currentIndex < allEpisodes.length - 1) {
@@ -71,7 +72,7 @@ export default function WatchPage({ params }: { params: { slug: string } }) {
   };
 
   const totalSeconds = (() => {
-    const ep = allEpisodes.find((e: Episode) => e.id === episodeId);
+    const ep = allEpisodes.find((e: Episode) => e.id === activeEpisodeId);
     const mins = ep?.duration || content.duration || 0;
     return mins * 60;
   })();
@@ -85,7 +86,7 @@ export default function WatchPage({ params }: { params: { slug: string } }) {
     <div className="w-full h-screen bg-black overflow-hidden">
       <VideoPlayer
         content={content}
-        episodeId={episodeId}
+        episodeId={activeEpisodeId}
         initialResumeSeconds={resumeSeconds}
         onNextEpisode={
           currentIndex >= 0 && currentIndex < allEpisodes.length - 1
