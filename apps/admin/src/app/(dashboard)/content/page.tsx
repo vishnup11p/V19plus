@@ -25,18 +25,47 @@ import {
   ArrowDown
 } from 'lucide-react';
 
-const cleanStreamUrl = (url: string) => {
+const cleanMediaUrl = (url: string) => {
+  if (!url) return '';
   let u = url.trim();
+
+  // 1. Handle gs:// (e.g. gs://v19-plus.firebasestorage.app/uploads/EP-01.mp4)
+  if (u.startsWith('gs://')) {
+    const withoutPrefix = u.replace('gs://', '');
+    const slashIdx = withoutPrefix.indexOf('/');
+    if (slashIdx !== -1) {
+      const bucket = withoutPrefix.substring(0, slashIdx);
+      const filePath = withoutPrefix.substring(slashIdx + 1);
+      return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(filePath)}?alt=media`;
+    }
+  }
+
+  // 2. Handle storage.googleapis.com
+  if (u.includes('storage.googleapis.com/') && !u.includes('firebasestorage.googleapis.com')) {
+    const match = u.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
+    if (match) {
+      const bucket = match[1];
+      const filePath = match[2];
+      return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(filePath)}?alt=media`;
+    }
+  }
+
+  // 3. Handle firebasestorage.googleapis.com (ensure alt=media is present)
   if (u.includes('firebasestorage.googleapis.com')) {
-    // Remove &token=... query parameter so it uses the public stream URL (Option 3)
-    u = u.replace(/([?&])token=[^&]+(&|$)/, '$1').replace(/[?&]$/, '');
-    // Ensure alt=media is present for streaming
     if (!u.includes('alt=media')) {
       u += (u.includes('?') ? '&' : '?') + 'alt=media';
     }
   }
+
   return u;
 };
+
+const toSlug = (str: string) =>
+  str
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 const emptyMovieForm = {
   title: '',
@@ -133,11 +162,13 @@ export default function AdminContent() {
         ...movieForm,
         genre: movieForm.genre.split(',').map((g) => g.trim()).filter(Boolean),
         tags: movieForm.tags.split(',').map((t) => t.trim()).filter(Boolean),
-        slug: movieForm.slug || movieForm.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: toSlug(movieForm.slug || movieForm.title),
         imdbScore: movieForm.imdbScore ? Number(movieForm.imdbScore) : null,
         duration: movieForm.duration ? Number(movieForm.duration) : null,
-        trailerUrl: movieForm.trailerUrl || null,
-        videoUrl: movieForm.videoUrl || null,
+        thumbnailUrl: cleanMediaUrl(movieForm.thumbnailUrl),
+        backdropUrl: cleanMediaUrl(movieForm.backdropUrl),
+        trailerUrl: cleanMediaUrl(movieForm.trailerUrl) || null,
+        videoUrl: cleanMediaUrl(movieForm.videoUrl) || null,
       };
       return editing
         ? adminApi.updateContent(editing.id, payload as any)
@@ -177,25 +208,33 @@ export default function AdminContent() {
         .filter((c) => c.name);
 
       const payload = {
-        title: seriesForm.title,
-        slug: seriesForm.slug || seriesForm.title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        description: seriesForm.description,
+        title: seriesForm.title.trim(),
+        slug: toSlug(seriesForm.slug || seriesForm.title),
+        description: seriesForm.description.trim(),
         type: 'SERIES',
         genre: seriesForm.genre.split(',').map((g) => g.trim()).filter(Boolean),
         language: seriesForm.language,
         releaseYear: Number(seriesForm.releaseYear) || new Date().getFullYear(),
         rating: seriesForm.rating,
         imdbScore: seriesForm.imdbScore ? Number(seriesForm.imdbScore) : null,
-        thumbnailUrl: seriesForm.thumbnailUrl,
-        backdropUrl: seriesForm.backdropUrl,
-        trailerUrl: seriesForm.trailerUrl || null,
+        thumbnailUrl: cleanMediaUrl(seriesForm.thumbnailUrl),
+        backdropUrl: cleanMediaUrl(seriesForm.backdropUrl),
+        trailerUrl: cleanMediaUrl(seriesForm.trailerUrl) || null,
         status: seriesForm.status,
         isOriginal: seriesForm.isOriginal,
         isFeatured: seriesForm.isFeatured,
         isPublished: seriesForm.isPublished,
         tags: seriesForm.tags.split(',').map((t) => t.trim()).filter(Boolean),
         cast: cast.length > 0 ? cast : undefined,
-        seasons: seriesForm.seasons,
+        seasons: seriesForm.seasons.map((s) => ({
+          ...s,
+          posterUrl: cleanMediaUrl(s.posterUrl || ''),
+          episodes: s.episodes.map((ep) => ({
+            ...ep,
+            videoUrl: cleanMediaUrl(ep.videoUrl || ''),
+            thumbnailUrl: cleanMediaUrl(ep.thumbnailUrl || ''),
+          })),
+        })),
       };
 
       return editing
@@ -648,7 +687,7 @@ export default function AdminContent() {
               <Input
                 label="Direct Video URL (Optional)"
                 value={movieForm.videoUrl}
-                onChange={(v) => setMovieForm({ ...movieForm, videoUrl: cleanStreamUrl(v) })}
+                onChange={(v) => setMovieForm({ ...movieForm, videoUrl: cleanMediaUrl(v) })}
                 placeholder="https://firebasestorage.googleapis.com/.../video.mp4?alt=media (or .m3u8)"
               />
             </div>
@@ -1044,7 +1083,7 @@ export default function AdminContent() {
                             <input
                               type="text"
                               value={ep.thumbnailUrl || ''}
-                              onChange={(e) => updateEpisode(sIdx, epIdx, 'thumbnailUrl', e.target.value)}
+                              onChange={(e) => updateEpisode(sIdx, epIdx, 'thumbnailUrl', cleanMediaUrl(e.target.value))}
                               className="w-full bg-[#0a0a0a] border border-[#222] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#FF5C00]"
                               placeholder="https://domain.com/episode-thumb.jpg"
                             />
@@ -1057,7 +1096,7 @@ export default function AdminContent() {
                             <input
                               type="text"
                               value={ep.videoUrl || ''}
-                              onChange={(e) => updateEpisode(sIdx, epIdx, 'videoUrl', cleanStreamUrl(e.target.value))}
+                              onChange={(e) => updateEpisode(sIdx, epIdx, 'videoUrl', cleanMediaUrl(e.target.value))}
                               className="w-full bg-[#0a0a0a] border border-[#222] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#FF5C00]"
                               placeholder="https://firebasestorage.googleapis.com/.../ep.mp4?alt=media (or .m3u8)"
                             />

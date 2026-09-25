@@ -59,6 +59,29 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   const sanitizeStreamUrl = (url: string) => {
     if (!url) return '';
     let sanitized = url.trim();
+
+    // 1. Handle gs:// (e.g. gs://v19-plus.firebasestorage.app/uploads/EP-01.mp4)
+    if (sanitized.startsWith('gs://')) {
+      const withoutPrefix = sanitized.replace('gs://', '');
+      const slashIdx = withoutPrefix.indexOf('/');
+      if (slashIdx !== -1) {
+        const bucket = withoutPrefix.substring(0, slashIdx);
+        const filePath = withoutPrefix.substring(slashIdx + 1);
+        return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(filePath)}?alt=media`;
+      }
+    }
+
+    // 2. Handle storage.googleapis.com
+    if (sanitized.includes('storage.googleapis.com/') && !sanitized.includes('firebasestorage.googleapis.com')) {
+      const match = sanitized.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
+      if (match) {
+        const bucket = match[1];
+        const filePath = match[2];
+        return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodeURIComponent(filePath)}?alt=media`;
+      }
+    }
+
+    // 3. Handle firebasestorage.googleapis.com (ensure alt=media is present)
     if (sanitized.includes('firebasestorage.googleapis.com') && !sanitized.includes('alt=media')) {
       sanitized += (sanitized.includes('?') ? '&' : '?') + 'alt=media';
     }

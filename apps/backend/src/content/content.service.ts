@@ -165,7 +165,40 @@ export class ContentService {
   }
 
   async getBySlug(slug: string, userId?: string) {
-    const snap = await this.firebase.firestore.collection('content').where('slug', '==', slug).limit(1).get();
+    const rawSlug = slug;
+    const cleanSlug = decodeURIComponent(slug).trim();
+    const slugified = cleanSlug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+    // 1. Exact match on requested slug
+    let snap = await this.firebase.firestore.collection('content').where('slug', '==', rawSlug).limit(1).get();
+
+    // 2. Match on decoded/trimmed slug
+    if (snap.empty && cleanSlug !== rawSlug) {
+      snap = await this.firebase.firestore.collection('content').where('slug', '==', cleanSlug).limit(1).get();
+    }
+
+    // 3. Match on slugified version
+    if (snap.empty && slugified !== rawSlug && slugified !== cleanSlug) {
+      snap = await this.firebase.firestore.collection('content').where('slug', '==', slugified).limit(1).get();
+    }
+
+    // 4. Match on document ID
+    if (snap.empty) {
+      const doc = await this.firebase.firestore.collection('content').doc(rawSlug).get();
+      if (doc.exists) snap = { empty: false, docs: [doc] } as any;
+    }
+
+    // 5. In-memory fallback across all content
+    if (snap.empty) {
+      const allSnap = await this.firebase.firestore.collection('content').get();
+      const matched = allSnap.docs.find((d) => {
+        const data = d.data();
+        const s = (data.slug || data.title || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return s === slugified || s === cleanSlug.toLowerCase() || d.id === rawSlug;
+      });
+      if (matched) snap = { empty: false, docs: [matched] } as any;
+    }
+
     if (snap.empty) throw new NotFoundException('Content not found');
     
     const content = { id: snap.docs[0].id, ...snap.docs[0].data() } as any;
