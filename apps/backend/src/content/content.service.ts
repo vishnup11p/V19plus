@@ -259,6 +259,7 @@ export class ContentService {
 
     await this.redis.del('content:featured');
     await this.redis.del('content:trending');
+    if (payload.slug) await this.redis.del(`content:slug:${payload.slug}`);
     return this.mapContent(payload);
   }
 
@@ -276,10 +277,14 @@ export class ContentService {
     }
     await docRef.update(plain);
     const updated = await docRef.get();
+    const updatedData = updated.data() as any;
 
     await this.redis.del('content:featured');
     await this.redis.del('content:trending');
-    return this.mapContent({ id: updated.id, ...updated.data() });
+    // Bust slug cache so watch page immediately sees new videoUrl
+    const slug = updatedData?.slug || plain.slug;
+    if (slug) await this.redis.del(`content:slug:${slug}`);
+    return this.mapContent({ id: updated.id, ...updatedData });
   }
 
   async deleteContent(id: string) {
@@ -287,9 +292,11 @@ export class ContentService {
     const doc = await docRef.get();
     if (!doc.exists) throw new NotFoundException('Content not found');
 
+    const docData = doc.data() as any;
     await docRef.delete();
     await this.redis.del('content:featured');
     await this.redis.del('content:trending');
+    if (docData?.slug) await this.redis.del(`content:slug:${docData.slug}`);
     return { message: 'Content deleted' };
   }
 }

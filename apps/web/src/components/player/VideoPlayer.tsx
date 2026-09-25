@@ -38,14 +38,14 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     ?.flatMap((s) => s.episodes)
     .find((e) => e.id === episodeId);
 
-  const videoUrl = episode?.videoUrl || content.videoUrl || '';
+  const rawVideoUrl = (episode?.videoUrl || content.videoUrl || '').trim();
   const { downloads } = useDownloadStore();
   const downloadItem = downloads[episodeId || content.id];
   const finalVideoUrl = (downloadItem && downloadItem.status === 'completed' && downloadItem.localUri)
     ? (typeof (Capacitor as any)?.convertFileSrc === 'function' && Capacitor.isNativePlatform()
         ? (Capacitor as any).convertFileSrc(downloadItem.localUri)
         : downloadItem.localUri)
-    : videoUrl;
+    : rawVideoUrl;
 
   const totalDuration = episode?.duration ? episode.duration * 60 : (content.duration || 0) * 60;
   const nextEpisode = content.seasons?.flatMap((s) => s.episodes).find((e, i, arr) => {
@@ -53,7 +53,8 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     return idx >= 0 && i === idx + 1;
   });
 
-  const hasVideo = !!finalVideoUrl && (finalVideoUrl.startsWith('http://') || finalVideoUrl.startsWith('https://') || finalVideoUrl.startsWith('/') || finalVideoUrl.startsWith('file://') || finalVideoUrl.startsWith('capacitor://'));
+  // Accept any non-empty URL — http, https, relative, file, capacitor, blob, etc.
+  const hasVideo = finalVideoUrl.length > 0;
 
   // Native orientation lock and keep awake hooks
   useEffect(() => {
