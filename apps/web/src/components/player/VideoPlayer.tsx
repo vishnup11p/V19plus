@@ -1,13 +1,13 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import ReactPlayer from 'react-player';
 import { useRouter } from 'next/navigation';
-import { usePlayerStore } from '../../store/playerStore';
 import { PlayerControls } from './PlayerControls';
 import { SubtitleOverlay } from './SubtitleOverlay';
 import { NextEpisodeOverlay } from './NextEpisodeOverlay';
 import { Content } from '../../api/content';
 import { getPlaybackPrefs } from '../../utils/playbackPrefs';
 import { useDownloadStore } from '../../store/downloadStore';
+import { historyApi } from '../../api/history';
 import { Capacitor } from '@capacitor/core';
 
 interface VideoPlayerProps {
@@ -15,25 +15,54 @@ interface VideoPlayerProps {
   episodeId?: string;
   onNextEpisode?: () => void;
   initialResumeSeconds?: number;
+  autoPlay?: boolean;
 }
 
-export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSeconds = 0 }: VideoPlayerProps) {
+export function VideoPlayer({
+  content,
+  episodeId,
+  onNextEpisode,
+  initialResumeSeconds = 0,
+  autoPlay = true,
+}: VideoPlayerProps) {
   const router = useRouter();
+
+  // Unique instance ID for debugging and complete multi-player isolation
+  const instanceId = useRef('player_' + Math.random().toString(36).substring(2, 9)).current;
+
+  // Instance-scoped refs
   const playerRef = useRef<ReactPlayer>(null);
   const hlsPlayerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<any>(null);
   const bufferTimer = useRef<any>(null);
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasSeeked = useRef(false);
+  const isHovered = useRef(false);
+  const isManualQualityRef = useRef(false);
+  const fallbackAttempted = useRef(false);
+
+  // Instance-scoped playback states (isolated from other players)
+  const [isPlaying, setIsPlaying] = useState(autoPlay);
+  const [progress, setProgress] = useState(initialResumeSeconds);
   const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0.8);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [playbackSpeed, setPlaybackSpeed] = useState(() => getPlaybackPrefs().defaultSpeed);
+  const [subtitles, setSubtitles] = useState(() => getPlaybackPrefs().subtitles);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [qualities, setQualities] = useState<Array<{ height: number; bitrate?: number; index: number; label?: string; url?: string }>>([]);
+  const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 = Auto ABR
   const [showNextOverlay, setShowNextOverlay] = useState(false);
   const [isError, setIsError] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
 
-  const {
-    isPlaying, progress, volume, isMuted, showControls, subtitles, playbackSpeed,
-    play, pause, resume, seek, setShowControls, updateProgress, saveProgressNow,
-  } = usePlayerStore();
+  // Central instrumentation logger
+  const logEvent = useCallback((event: string, details?: any) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[Player #${instanceId} @ ${timestamp}] ${event}`, details !== undefined ? details : '');
+  }, [instanceId]);
 
   const allEpisodes = content.seasons?.flatMap((s) => s.episodes) || [];
   const episode = (episodeId ? allEpisodes.find((e) => e.id === episodeId) : null) || allEpisodes[0];
@@ -54,14 +83,13 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     return idx >= 0 && i === idx + 1;
   });
 
-  // Accept any non-empty URL — http, https, relative, file, capacitor, blob, etc.
   const hasVideo = finalVideoUrl.length > 0;
 
   const sanitizeStreamUrl = (url: string) => {
     if (!url) return '';
     let sanitized = url.trim();
 
-    // 1. Handle gs:// (e.g. gs://v19-plus.firebasestorage.app/uploads/EP-01.mp4)
+    // 1. Handle gs:// (Firebase Storage raw scheme)
     if (sanitized.startsWith('gs://')) {
       const withoutPrefix = sanitized.replace('gs://', '');
       const slashIdx = withoutPrefix.indexOf('/');
@@ -82,7 +110,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       }
     }
 
-    // 3. Handle firebasestorage.googleapis.com (ensure alt=media is present)
+    // 3. Handle firebasestorage.googleapis.com (ensure alt=media)
     if (sanitized.includes('firebasestorage.googleapis.com') && !sanitized.includes('alt=media')) {
       sanitized += (sanitized.includes('?') ? '&' : '?') + 'alt=media';
     }
@@ -90,17 +118,48 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   };
 
   const [activeVideoUrl, setActiveVideoUrl] = useState(() => sanitizeStreamUrl(finalVideoUrl));
-  const fallbackAttempted = useRef(false);
 
   useEffect(() => {
     setActiveVideoUrl(sanitizeStreamUrl(finalVideoUrl));
     fallbackAttempted.current = false;
+    hasSeeked.current = false;
   }, [finalVideoUrl]);
 
-  // Native orientation lock and keep awake hooks
+  // Instance-scoped history saving
+  const saveProgressNow = useCallback((sec?: number) => {
+    const currentSec = sec !== undefined ? sec : progress;
+    if (!content?.id || currentSec <= 0) return;
+    const total = totalDuration > 0 ? totalDuration : 1;
+    const pct = Math.min(100, (currentSec / total) * 100);
+
+    historyApi.upsert({
+      contentId: content.id,
+      episodeId: episode?.id || episodeId,
+      progress: pct,
+      completed: pct >= 95,
+    }).catch(() => {});
+  }, [content?.id, episode?.id, episodeId, progress, totalDuration]);
+
+  const triggerPeriodicSave = useCallback((sec: number) => {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => {
+      saveProgressNow(sec);
+    }, 8000);
+  }, [saveProgressNow]);
+
+  // Clean cleanup: Only save this player's progress on unmount; never reset other players!
+  useEffect(() => {
+    return () => {
+      if (saveTimeout.current) {
+        clearTimeout(saveTimeout.current);
+      }
+      saveProgressNow();
+    };
+  }, [saveProgressNow]);
+
+  // Orientation and KeepAwake for native platforms
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
     let isMounted = true;
 
     const enableNativeFeatures = async () => {
@@ -118,11 +177,6 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
           return;
         }
         await KeepAwake.keepAwake();
-
-        if (!isMounted) {
-          await KeepAwake.allowSleep();
-          await ScreenOrientation.unlock();
-        }
       } catch (err) {
         console.error('Failed to enable native video player locks:', err);
       }
@@ -150,45 +204,47 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     };
   }, []);
 
-  // Subscribe to playerStore changes for HLS quality settings & direct multi-resolution streams
+  // Multi-resolution URL loader for direct quality streams (180p, 240p, 360p, 480p, 720p, 1080p)
   useEffect(() => {
-    const unsubscribe = usePlayerStore.subscribe((state) => {
-      if (hlsPlayerRef.current && hlsPlayerRef.current.currentLevel !== state.currentQuality) {
-        hlsPlayerRef.current.currentLevel = state.currentQuality;
-      }
-      // If quality changed and it has a direct stream URL (multi-bitrate URLs)
-      if (state.currentQuality >= 0 && state.qualities[state.currentQuality]?.url) {
-        const targetUrl = state.qualities[state.currentQuality].url!;
-        if (targetUrl && targetUrl !== activeVideoUrl) {
-          const currentSec = usePlayerStore.getState().progress;
-          setActiveVideoUrl(targetUrl);
-          setTimeout(() => {
-            playerRef.current?.seekTo(currentSec);
-          }, 150);
-        }
-      }
-    });
-    return () => {
-      unsubscribe();
-      hlsPlayerRef.current = null;
-    };
-  }, [activeVideoUrl]);
+    const rawQualities = (episode as any)?.videoQualities || (content as any)?.videoQualities;
+    if (rawQualities && typeof rawQualities === 'object' && Object.keys(rawQualities).length > 0) {
+      const qList = Object.entries(rawQualities)
+        .map(([res, url]) => {
+          const height = parseInt(res.replace(/\D/g, '')) || 0;
+          const getLabel = (h: number) => {
+            if (h >= 1080) return `${h}p Full HD`;
+            if (h >= 720) return `${h}p HD`;
+            if (h >= 480) return `${h}p Standard`;
+            if (h >= 360) return `${h}p Medium`;
+            if (h >= 240) return `${h}p Low Data (Smooth)`;
+            return `${h}p Ultra Low`;
+          };
+          return {
+            height,
+            url: sanitizeStreamUrl(url as string),
+            label: getLabel(height),
+          };
+        })
+        .sort((a, b) => b.height - a.height)
+        .map((q, idx) => ({
+          ...q,
+          index: idx,
+        }));
 
-  useEffect(() => {
-    play(content, episode ? { ...episode, duration: episode.duration } : undefined, initialResumeSeconds);
-    hasSeeked.current = false;
-    return () => usePlayerStore.getState().reset();
-  }, [content.id, episodeId, initialResumeSeconds]);
+      setQualities(qList);
+    }
+  }, [content, episode]);
 
+  // Initial resume seek
   useEffect(() => {
     if (initialResumeSeconds > 0 && duration > 0 && !hasSeeked.current) {
-      playerRef.current?.seekTo(initialResumeSeconds);
-      seek(initialResumeSeconds);
+      playerRef.current?.seekTo(initialResumeSeconds, 'seconds');
+      setProgress(initialResumeSeconds);
       hasSeeked.current = true;
     }
-  }, [duration, initialResumeSeconds, seek]);
+  }, [duration, initialResumeSeconds]);
 
-  // Real-time synchronization with native <video> element to prevent any stuck buffering state
+  // Real-time synchronization with native <video> element
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -208,13 +264,24 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       };
 
       const handleWaiting = () => {
+        logEvent('waiting', { currentTime: video.currentTime, readyState: video.readyState });
         if (bufferTimer.current) clearTimeout(bufferTimer.current);
-        // Only trigger buffering spinner if playback stalls for > 600ms
+        // Only trigger buffering spinner if playback stalls for > 500ms
         bufferTimer.current = setTimeout(() => {
           if (!video.paused && !video.ended) {
             setIsBuffering(true);
           }
-        }, 600);
+        }, 500);
+      };
+
+      const handleStalled = () => {
+        logEvent('stalled', { currentTime: video.currentTime, networkState: video.networkState });
+        if (bufferTimer.current) clearTimeout(bufferTimer.current);
+        bufferTimer.current = setTimeout(() => {
+          if (!video.paused && !video.ended) {
+            setIsBuffering(true);
+          }
+        }, 500);
       };
 
       video.addEventListener('playing', clearBuffer);
@@ -223,7 +290,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       video.addEventListener('canplaythrough', clearBuffer);
       video.addEventListener('pause', clearBuffer);
       video.addEventListener('waiting', handleWaiting);
-      video.addEventListener('stalled', handleWaiting);
+      video.addEventListener('stalled', handleStalled);
 
       cleanupListeners = () => {
         video.removeEventListener('playing', clearBuffer);
@@ -232,7 +299,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         video.removeEventListener('canplaythrough', clearBuffer);
         video.removeEventListener('pause', clearBuffer);
         video.removeEventListener('waiting', handleWaiting);
-        video.removeEventListener('stalled', handleWaiting);
+        video.removeEventListener('stalled', handleStalled);
       };
       return true;
     };
@@ -254,144 +321,109 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       if (cleanupListeners) cleanupListeners();
       if (bufferTimer.current) clearTimeout(bufferTimer.current);
     };
-  }, [activeVideoUrl]);
+  }, [activeVideoUrl, logEvent]);
 
-  // Continuous Playback Watchdog: Guarantees video DOES NOT STOP under slow or fluctuating networks
+  // Fullscreen change listener
   useEffect(() => {
-    let lastSec = -1;
-    let stallCount = 0;
+    const onFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === containerRef.current);
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
 
-    const watchdog = setInterval(() => {
-      const video = containerRef.current?.querySelector('video');
-      if (!video) return;
-
-      if (isPlaying && !video.paused && !video.ended) {
-        const cur = video.currentTime;
-        if (lastSec > 0 && Math.abs(cur - lastSec) < 0.05) {
-          stallCount++;
-          // If video has stalled for > 2.5 seconds
-          if (stallCount >= 3) {
-            console.warn('⚠️ Zero-Stall Watchdog: Video paused on buffer, auto-recovering...');
-            
-            // 1. If HLS, automatically drop quality level so playback immediately continues
-            if (hlsPlayerRef.current) {
-              const curLvl = hlsPlayerRef.current.currentLevel;
-              if (curLvl > 0) {
-                console.log('Zero-Stall: Auto-downshifting to lower resolution level');
-                hlsPlayerRef.current.currentLevel = Math.max(0, curLvl - 1);
-              } else if (curLvl === -1) {
-                // If on Auto and stalled, temporarily force lowest level (180p/240p)
-                console.log('Zero-Stall: Forcing lowest level (180p/240p) for immediate buffer fill');
-                hlsPlayerRef.current.currentLevel = 0;
-              }
-            }
-
-            // 2. Hardware Decoder Unstick
-            try {
-              video.currentTime = cur + 0.08;
-              video.play().catch(() => {});
-            } catch (err) {
-              // Ignore
-            }
-            stallCount = 0;
-          }
-        } else {
-          lastSec = cur;
-          stallCount = 0;
-        }
-      } else {
-        lastSec = -1;
-        stallCount = 0;
-      }
-    }, 1000);
-
-    return () => clearInterval(watchdog);
-  }, [isPlaying]);
-
-  // Multi-resolution URL loader for direct quality streams (180p, 240p, 360p, 480p, 720p, 1080p)
-  useEffect(() => {
-    const rawQualities = (episode as any)?.videoQualities || (content as any)?.videoQualities;
-    if (rawQualities && typeof rawQualities === 'object' && Object.keys(rawQualities).length > 0) {
-      const qList = Object.entries(rawQualities).map(([res, url], idx) => {
-        const height = parseInt(res.replace(/\D/g, '')) || 0;
-        const getLabel = (h: number) => {
-          if (h >= 1080) return `${h}p Full HD`;
-          if (h >= 720) return `${h}p HD`;
-          if (h >= 480) return `${h}p Standard`;
-          if (h >= 360) return `${h}p Medium`;
-          if (h >= 240) return `${h}p Low Data (Smooth)`;
-          return `${h}p Ultra Low (Never Stops)`;
-        };
-        return {
-          height,
-          index: idx,
-          url: sanitizeStreamUrl(url as string),
-          label: getLabel(height),
-        };
-      }).sort((a, b) => b.height - a.height);
-      usePlayerStore.getState().setQualities(qList);
+  const handleToggleFullscreen = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (!document.fullscreenElement) {
+      container.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
     }
-  }, [content, episode]);
+  }, []);
 
   const resetHideTimer = useCallback(() => {
     setShowControls(true);
     if (hideTimer.current) clearTimeout(hideTimer.current);
     hideTimer.current = setTimeout(() => setShowControls(false), 3000);
-  }, [setShowControls]);
+  }, []);
 
   useEffect(() => {
     resetHideTimer();
     return () => { if (hideTimer.current) clearTimeout(hideTimer.current); };
   }, [resetHideTimer]);
 
+  // Keyboard controls isolated to currently hovered or focused player
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      const isPlayerActive = isHovered.current ||
+        containerRef.current?.contains(document.activeElement) ||
+        document.fullscreenElement === containerRef.current;
+
+      if (!isPlayerActive) return;
+
       switch (e.key) {
         case ' ':
           e.preventDefault();
-          isPlaying ? pause() : resume();
+          setIsPlaying((prev) => {
+            const next = !prev;
+            logEvent(next ? 'play' : 'pause', { origin: 'keyboard_space' });
+            return next;
+          });
           break;
         case 'ArrowLeft':
-          seek(Math.max(0, progress - 10));
-          playerRef.current?.seekTo(Math.max(0, progress - 10));
+          e.preventDefault();
+          setProgress((prev) => {
+            const next = Math.max(0, prev - 10);
+            playerRef.current?.seekTo(next, 'seconds');
+            return next;
+          });
           break;
         case 'ArrowRight':
-          seek(Math.min(duration, progress + 10));
-          playerRef.current?.seekTo(Math.min(duration, progress + 10));
+          e.preventDefault();
+          setProgress((prev) => {
+            const next = Math.min(duration, prev + 10);
+            playerRef.current?.seekTo(next, 'seconds');
+            return next;
+          });
           break;
         case 'f':
         case 'F':
-          usePlayerStore.getState().toggleFullscreen();
+          handleToggleFullscreen();
           break;
         case 'm':
         case 'M':
-          usePlayerStore.getState().toggleMute();
+          setIsMuted((prev) => !prev);
           break;
         case 'ArrowUp':
-          usePlayerStore.getState().setVolume(Math.min(1, volume + 0.1));
+          e.preventDefault();
+          setVolume((prev) => Math.min(1, prev + 0.1));
           break;
         case 'ArrowDown':
-          usePlayerStore.getState().setVolume(Math.max(0, volume - 0.1));
+          e.preventDefault();
+          setVolume((prev) => Math.max(0, prev - 0.1));
           break;
       }
       resetHideTimer();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isPlaying, progress, duration, volume, pause, resume, seek, resetHideTimer]);
+  }, [duration, handleToggleFullscreen, resetHideTimer, logEvent]);
 
   const handleSeek = (time: number) => {
-    seek(time);
-    playerRef.current?.seekTo(time);
+    logEvent('seek', { time });
+    setProgress(time);
+    playerRef.current?.seekTo(time, 'seconds');
   };
 
   const handleEnded = () => {
-    saveProgressNow();
+    logEvent('ended');
+    saveProgressNow(duration);
     const prefs = getPlaybackPrefs();
     if (onNextEpisode && prefs.autoplayNext) {
       setShowNextOverlay(true);
     } else {
-      pause();
+      setIsPlaying(false);
     }
   };
 
@@ -402,6 +434,36 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         if (document.pictureInPictureElement) await document.exitPictureInPicture();
         else await video.requestPictureInPicture();
       } catch { /* ignore */ }
+    }
+  };
+
+  // Quality selection logic: locks manual quality and persists across ABR events
+  const handleSetQuality = (qualityIndex: number) => {
+    logEvent('qualitySelect', { qualityIndex, isManual: qualityIndex >= 0 });
+    setCurrentQuality(qualityIndex);
+
+    // 1. If HLS player is active
+    if (hlsPlayerRef.current) {
+      if (qualityIndex === -1) {
+        // Auto ABR mode
+        isManualQualityRef.current = false;
+        hlsPlayerRef.current.currentLevel = -1;
+      } else {
+        // Manual override: lock both currentLevel and loadLevel to stick
+        isManualQualityRef.current = true;
+        hlsPlayerRef.current.currentLevel = qualityIndex;
+        hlsPlayerRef.current.loadLevel = qualityIndex;
+      }
+    } else {
+      // 2. If direct multi-bitrate streams
+      const target = qualities.find((q) => q.index === qualityIndex);
+      if (target?.url && target.url !== activeVideoUrl) {
+        const curSec = progress;
+        setActiveVideoUrl(target.url);
+        setTimeout(() => {
+          playerRef.current?.seekTo(curSec, 'seconds');
+        }, 100);
+      }
     }
   };
 
@@ -475,7 +537,15 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       ref={containerRef}
       className={`relative w-full h-full bg-black overflow-hidden select-none ${showControls ? 'cursor-default' : 'cursor-none'}`}
       onMouseMove={resetHideTimer}
-      onClick={() => (isPlaying ? pause() : resume())}
+      onMouseEnter={() => { isHovered.current = true; }}
+      onMouseLeave={() => { isHovered.current = false; }}
+      onClick={() => {
+        setIsPlaying((prev) => {
+          const next = !prev;
+          logEvent(next ? 'play' : 'pause', { origin: 'container_click' });
+          return next;
+        });
+      }}
     >
       {/* Top Bar with Back Button */}
       {showControls && (
@@ -533,23 +603,23 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
             },
             tracks: activeTracks,
             hlsOptions: {
-              enableWorker: true, // Demux stream on a background Web Worker
+              enableWorker: true,
               lowLatencyMode: false,
-              backBufferLength: 90, // 90s backbuffer for instant seek back
-              maxBufferLength: 60, // 60s forward buffer for rock-solid stability
-              maxMaxBufferLength: 120, // 120s max forward buffer
+              backBufferLength: 90,
+              maxBufferLength: 60,
+              maxMaxBufferLength: 120,
               maxBufferSize: 80 * 1000 * 1000,
-              maxBufferHole: 0.8, // Tolerate network jitter up to 0.8s without stalling
-              highBufferWatchdogPeriod: 1, // Inspect buffer health every 1 second
+              maxBufferHole: 0.8,
+              highBufferWatchdogPeriod: 1,
               nudgeOffset: 0.2,
               nudgeMaxRetry: 10,
               maxFragLookUpTolerance: 0.3,
-              startLevel: 0, // Starts at lowest resolution (180p/240p) immediately (<0.2s launch), then scales up smoothly
+              startLevel: -1, // Native automatic ABR start (dynamic based on initial segment test)
               autoStartLoad: true,
-              capLevelToPlayerSize: true, // Caps stream resolution to device display to save GPU & bandwidth
-              abrEwmaDefaultEstimate: 800000, // 800 kbps conservative default estimate for instant startup
-              abrBandWidthFactor: 0.75, // Conservative factor: only climbs when bandwidth is proven
-              abrBandWidthUpFactor: 0.5,
+              capLevelToPlayerSize: false, // Do not cap stream quality to smaller player container size
+              abrEwmaDefaultEstimate: 4000000, // 4 Mbps default estimate for smooth, high quality start
+              abrBandWidthFactor: 0.85,
+              abrBandWidthUpFactor: 0.7,
               abrMaxWithRealBitrate: true,
               fragLoadingTimeOut: 20000,
               fragLoadingMaxRetry: 6,
@@ -563,98 +633,105 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
           const internalPlayer = player.getInternalPlayer('hls');
           if (internalPlayer) {
             hlsPlayerRef.current = internalPlayer;
+
+            // Log quality switch events
+            internalPlayer.on('hlsLevelSwitching', (event: any, data: any) => {
+              logEvent('quality/levelSwitching', { toLevel: data.level });
+            });
+
+            internalPlayer.on('hlsLevelSwitched', (event: any, data: any) => {
+              logEvent('quality/levelSwitched', { currentLevel: data.level });
+            });
+
             // Manifest parsed -> load available bitrate & resolution levels
             internalPlayer.on('hlsManifestParsed', (event: any, data: any) => {
-              if (data.levels) {
+              logEvent('manifestParsed', { levelsCount: data?.levels?.length });
+              if (data.levels && data.levels.length > 0) {
                 const getLabel = (height: number) => {
                   if (height >= 1080) return `${height}p Full HD`;
                   if (height >= 720) return `${height}p HD`;
                   if (height >= 480) return `${height}p Standard`;
                   if (height >= 360) return `${height}p Medium`;
                   if (height >= 240) return `${height}p Low Data (Smooth)`;
-                  return `${height}p Ultra Low (Never Stops)`;
+                  return `${height}p Ultra Low`;
                 };
-                const levels = data.levels.map((l: any, i: number) => ({
-                  height: l.height,
-                  bitrate: l.bitrate,
+                const parsed = data.levels.map((l: any, i: number) => ({
+                  height: l.height || 0,
+                  bitrate: l.bitrate || 0,
                   index: i,
                   label: getLabel(l.height),
                 })).sort((a: any, b: any) => b.height - a.height); // sort descending
-                usePlayerStore.getState().setQualities(levels);
+                setQualities(parsed);
               }
             });
 
-            // Resilient Error Recovery: Auto-downgrades to lowest level so video never stops
+            // Resilient Error Recovery
             internalPlayer.on('hlsError', (event: any, data: any) => {
+              logEvent('error', { type: data?.type, details: data?.details, fatal: data?.fatal });
               if (data?.fatal) {
                 switch (data.type) {
                   case 'networkError':
-                    console.warn('HLS Network Error, forcing level 0 (180p/240p) to keep stream alive...');
-                    internalPlayer.currentLevel = 0;
+                    logEvent('recoverNetworkError');
                     internalPlayer.startLoad();
                     break;
                   case 'mediaError':
-                    console.warn('HLS Media Error, recovering media buffer...');
+                    logEvent('recoverMediaError');
                     internalPlayer.recoverMediaError();
                     break;
                   default:
-                    console.error('Fatal unrecoverable HLS error, resetting level:', data);
-                    internalPlayer.currentLevel = 0;
+                    logEvent('recoverFatalError');
                     internalPlayer.startLoad();
                     break;
                 }
               } else if (data?.details === 'bufferStalledError') {
-                // If stalled, downshift resolution level immediately so video never stops
-                if (internalPlayer.currentLevel > 0) {
-                  console.log('Buffer stall detected, auto-downshifting stream resolution...');
+                logEvent('stalled', { bufferStalled: true, isManual: isManualQualityRef.current });
+                // Only downshift if in Auto ABR mode! Never override manual selection!
+                if (!isManualQualityRef.current && internalPlayer.currentLevel > 0) {
+                  logEvent('abrAutoDownshiftOnStall', { fromLevel: internalPlayer.currentLevel });
                   internalPlayer.currentLevel = Math.max(0, internalPlayer.currentLevel - 1);
                 }
               }
             });
-          } else {
-            // Fallback for native HLS (Safari/iOS/Android Native) or direct MP4/WebM
-            const videoElem = containerRef.current?.querySelector('video');
-            if (videoElem) {
-              const canPlayHLS = videoElem.canPlayType('application/vnd.apple.mpegurl');
-              const canPlayMP4 = videoElem.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
-              const canPlayWebM = videoElem.canPlayType('video/webm; codecs="vp9, opus"');
-              if (!canPlayHLS && !canPlayMP4 && !canPlayWebM && activeVideoUrl.includes('.m3u8')) {
-                console.warn('Native HLS not directly supported by HTML5 element; relying on MSE engine');
-              }
-            }
           }
         }}
         onPlay={() => {
           if (bufferTimer.current) clearTimeout(bufferTimer.current);
           setIsBuffering(false);
-          if (!isPlaying) resume();
+          setIsPlaying(true);
+          logEvent('play', { progress });
         }}
         onProgress={({ playedSeconds }) => {
           if (bufferTimer.current) clearTimeout(bufferTimer.current);
           setIsBuffering(false);
-          updateProgress(playedSeconds);
+          setProgress(playedSeconds);
+          triggerPeriodicSave(playedSeconds);
         }}
         onDuration={(d) => setDuration(d)}
         onEnded={handleEnded}
-        onPause={saveProgressNow}
+        onPause={() => {
+          logEvent('pause', { progress });
+          saveProgressNow(progress);
+        }}
         onBuffer={() => {
+          logEvent('waiting', { origin: 'onBuffer' });
           if (bufferTimer.current) clearTimeout(bufferTimer.current);
           bufferTimer.current = setTimeout(() => {
             const v = containerRef.current?.querySelector('video');
             if (v && !v.paused && !v.ended) {
               setIsBuffering(true);
             }
-          }, 600);
+          }, 500);
         }}
         onBufferEnd={() => {
+          logEvent('bufferEnd', { origin: 'onBufferEnd' });
           if (bufferTimer.current) clearTimeout(bufferTimer.current);
           setIsBuffering(false);
         }}
         onError={(e) => {
-          console.warn('ReactPlayer error encountered, attempting reload/fallback:', e);
-          // If this is a Firebase Storage URL with a token that failed, fallback to pure public URL without token (Option 3)
+          logEvent('error', { origin: 'react_player_onError', error: e });
+          // If this is a Firebase Storage URL with a token that failed, fallback to pure public URL without token
           if (!fallbackAttempted.current && activeVideoUrl.includes('firebasestorage.googleapis.com') && activeVideoUrl.includes('token=')) {
-            console.log('Firebase token playback failed, retrying with public stream URL (Option 3)...');
+            console.log('Firebase token playback failed, retrying with public stream URL...');
             fallbackAttempted.current = true;
             const stripped = activeVideoUrl.replace(/([?&])token=[^&]+(&|$)/, '$1').replace(/[?&]$/, '');
             setActiveVideoUrl(stripped);
@@ -673,7 +750,8 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
           className="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto cursor-pointer bg-black/30"
           onClick={(e) => {
             e.stopPropagation();
-            resume();
+            setIsPlaying(true);
+            logEvent('play', { origin: 'center_play_button' });
           }}
         >
           <div className="w-20 h-20 rounded-full bg-[#FF5C00] hover:bg-[#FF7A00] flex items-center justify-center text-white shadow-[0_0_30px_rgba(255,92,0,0.6)] transition-all hover:scale-110 active:scale-95">
@@ -695,7 +773,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         <NextEpisodeOverlay
           title={nextEpisode?.title}
           onNext={() => { setShowNextOverlay(false); onNextEpisode(); }}
-          onCancel={() => { setShowNextOverlay(false); pause(); }}
+          onCancel={() => { setShowNextOverlay(false); setIsPlaying(false); }}
         />
       )}
 
@@ -705,6 +783,32 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         onNextEpisode={onNextEpisode}
         showNext={showNextBtn}
         onPiP={handlePiP}
+        isPlaying={isPlaying}
+        progress={progress}
+        volume={volume}
+        isMuted={isMuted}
+        showControls={showControls}
+        playbackSpeed={playbackSpeed}
+        subtitles={subtitles}
+        isFullscreen={isFullscreen}
+        qualities={qualities}
+        currentQuality={currentQuality}
+        onTogglePlay={() => {
+          setIsPlaying((prev) => {
+            const next = !prev;
+            logEvent(next ? 'play' : 'pause', { origin: 'toggle_button' });
+            return next;
+          });
+        }}
+        onToggleMute={() => setIsMuted((prev) => !prev)}
+        onToggleFullscreen={handleToggleFullscreen}
+        onToggleSubtitles={() => setSubtitles((prev) => !prev)}
+        onSetPlaybackSpeed={(s) => setPlaybackSpeed(s)}
+        onSetVolume={(v) => {
+          setVolume(v);
+          setIsMuted(v === 0);
+        }}
+        onSetQuality={handleSetQuality}
       />
 
       {!showControls && (

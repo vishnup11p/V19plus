@@ -18,14 +18,70 @@ interface PlayerControlsProps {
   onNextEpisode?: () => void;
   showNext?: boolean;
   onPiP?: () => void;
+  // Per-instance state overrides for multi-player isolation
+  isPlaying?: boolean;
+  progress?: number;
+  volume?: number;
+  isMuted?: boolean;
+  showControls?: boolean;
+  playbackSpeed?: number;
+  subtitles?: boolean;
+  isFullscreen?: boolean;
+  qualities?: { height: number; bitrate?: number; index: number; label?: string; url?: string }[];
+  currentQuality?: number;
+  onTogglePlay?: () => void;
+  onToggleMute?: () => void;
+  onToggleFullscreen?: () => void;
+  onToggleSubtitles?: () => void;
+  onSetPlaybackSpeed?: (speed: number) => void;
+  onSetVolume?: (volume: number) => void;
+  onSetQuality?: (qualityIndex: number) => void;
 }
 
-export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPiP }: PlayerControlsProps) {
-  const {
-    isPlaying, progress, volume, isMuted, showControls, playbackSpeed, subtitles,
-    pause, resume, toggleMute, toggleFullscreen, toggleSubtitles,
-    setPlaybackSpeed, setVolume, isFullscreen,
-  } = usePlayerStore();
+export function PlayerControls({
+  duration,
+  onSeek,
+  onNextEpisode,
+  showNext,
+  onPiP,
+  isPlaying: propIsPlaying,
+  progress: propProgress,
+  volume: propVolume,
+  isMuted: propIsMuted,
+  showControls: propShowControls,
+  playbackSpeed: propPlaybackSpeed,
+  subtitles: propSubtitles,
+  isFullscreen: propIsFullscreen,
+  qualities: propQualities,
+  currentQuality: propCurrentQuality,
+  onTogglePlay,
+  onToggleMute,
+  onToggleFullscreen,
+  onToggleSubtitles,
+  onSetPlaybackSpeed,
+  onSetVolume,
+  onSetQuality,
+}: PlayerControlsProps) {
+  const store = usePlayerStore();
+
+  const isPlaying = propIsPlaying !== undefined ? propIsPlaying : store.isPlaying;
+  const progress = propProgress !== undefined ? propProgress : store.progress;
+  const volume = propVolume !== undefined ? propVolume : store.volume;
+  const isMuted = propIsMuted !== undefined ? propIsMuted : store.isMuted;
+  const showControls = propShowControls !== undefined ? propShowControls : store.showControls;
+  const playbackSpeed = propPlaybackSpeed !== undefined ? propPlaybackSpeed : store.playbackSpeed;
+  const subtitles = propSubtitles !== undefined ? propSubtitles : store.subtitles;
+  const isFullscreen = propIsFullscreen !== undefined ? propIsFullscreen : store.isFullscreen;
+  const qualities = propQualities !== undefined ? propQualities : store.qualities;
+  const currentQuality = propCurrentQuality !== undefined ? propCurrentQuality : store.currentQuality;
+
+  const handleTogglePlay = onTogglePlay || (() => (isPlaying ? store.pause() : store.resume()));
+  const handleToggleMute = onToggleMute || store.toggleMute;
+  const handleToggleFullscreen = onToggleFullscreen || store.toggleFullscreen;
+  const handleToggleSubtitles = onToggleSubtitles || store.toggleSubtitles;
+  const handleSetSpeed = onSetPlaybackSpeed || store.setPlaybackSpeed;
+  const handleSetVolume = onSetVolume || store.setVolume;
+  const handleSetQuality = onSetQuality || store.setQuality;
 
   const [showSettings, setShowSettings] = useState(false);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
@@ -106,7 +162,7 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
           <div className="flex items-center gap-3 sm:gap-5">
             {/* Play / Pause Toggle */}
             <button
-              onClick={() => isPlaying ? pause() : resume()}
+              onClick={handleTogglePlay}
               className="w-10 h-10 rounded-xl bg-[#FF5C00] hover:bg-[#FF7A00] text-white flex items-center justify-center transition-all shadow-[0_0_15px_rgba(255,92,0,0.4)] active:scale-95"
               aria-label={isPlaying ? 'Pause' : 'Play'}
             >
@@ -138,7 +194,7 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
             {/* Volume Control */}
             <div className="flex items-center gap-2 group/vol">
               <button
-                onClick={toggleMute}
+                onClick={handleToggleMute}
                 className="text-[#C8C2B8] hover:text-white p-2 rounded-xl hover:bg-white/5 transition-colors"
                 aria-label="Toggle mute"
               >
@@ -155,7 +211,7 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
                   max={1}
                   step={0.05}
                   value={isMuted ? 0 : volume}
-                  onChange={(e) => setVolume(Number(e.target.value))}
+                  onChange={(e) => handleSetVolume(Number(e.target.value))}
                   className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer"
                   style={{ accentColor: '#FF5C00' }}
                 />
@@ -194,12 +250,11 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
 
             {/* Subtitles CC */}
             <button
-              onClick={toggleSubtitles}
-              className={`text-xs font-black px-2.5 py-1.5 rounded-xl border transition-all ${
-                subtitles
+              onClick={handleToggleSubtitles}
+              className={`text-xs font-black px-2.5 py-1.5 rounded-xl border transition-all ${subtitles
                   ? 'bg-[#FF5C00] text-white border-[#FF5C00] shadow-[0_0_10px_rgba(255,92,0,0.4)]'
                   : 'text-[#C8C2B8] border-white/15 hover:border-white/30 hover:text-white bg-white/5'
-              }`}
+                }`}
               aria-label="Toggle Subtitles"
             >
               CC
@@ -209,9 +264,8 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
             <div className="relative">
               <button
                 onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}
-                className={`p-2 rounded-xl transition-colors ${
-                  showSettings ? 'text-[#FF5C00] bg-white/10' : 'text-[#C8C2B8] hover:text-white hover:bg-white/5'
-                }`}
+                className={`p-2 rounded-xl transition-colors ${showSettings ? 'text-[#FF5C00] bg-white/10' : 'text-[#C8C2B8] hover:text-white hover:bg-white/5'
+                  }`}
                 aria-label="Player Settings"
               >
                 <Settings className="w-5 h-5" />
@@ -231,12 +285,11 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
                       {SPEEDS.map((s) => (
                         <button
                           key={s}
-                          onClick={() => { setPlaybackSpeed(s); setShowSettings(false); }}
-                          className={`py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                            playbackSpeed === s
+                          onClick={() => { handleSetSpeed(s); setShowSettings(false); }}
+                          className={`py-1.5 text-xs font-bold rounded-lg transition-colors ${playbackSpeed === s
                               ? 'bg-[#FF5C00] text-white'
                               : 'bg-white/5 text-[#C8C2B8] hover:bg-white/10 hover:text-white'
-                          }`}
+                            }`}
                         >
                           {s === 1 ? 'Normal' : `${s}×`}
                         </button>
@@ -248,49 +301,45 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
                   <div className="border-t border-white/10 pt-2.5">
                     <p className="text-[10px] font-black text-[#8C8478] uppercase tracking-wider px-2 mb-1.5 flex items-center justify-between">
                       <span>Stream Quality</span>
-                      <span className="text-[9px] text-[#FF5C00] font-semibold">Zero-Stall ABR</span>
+                      <span className="text-[9px] text-[#FF5C00] font-semibold">
+                        {currentQuality === -1 ? 'Auto (ABR)' : 'Locked'}
+                      </span>
                     </p>
                     <button
-                      onClick={() => { usePlayerStore.getState().setQuality(-1); setShowSettings(false); }}
-                      className={`w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between transition-colors ${
-                        usePlayerStore.getState().currentQuality === -1 ? 'text-[#FF5C00] font-bold bg-[#FF5C00]/10' : 'text-[#C8C2B8] hover:bg-white/5 hover:text-white'
-                      }`}
+                      onClick={() => { handleSetQuality(-1); setShowSettings(false); }}
+                      className={`w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between transition-colors ${currentQuality === -1 ? 'text-[#FF5C00] font-bold bg-[#FF5C00]/10' : 'text-[#C8C2B8] hover:bg-white/5 hover:text-white'
+                        }`}
                     >
                       <div>
                         <div className="font-bold">Auto (Recommended)</div>
-                        <div className="text-[10px] text-white/50">Adaptive bitrate • Zero buffering</div>
+                        <div className="text-[10px] text-white/50">Adaptive bitrate • Continuous stream</div>
                       </div>
-                      {usePlayerStore.getState().currentQuality === -1 && <Check className="w-4 h-4 text-[#FF5C00] shrink-0" />}
+                      {currentQuality === -1 && <Check className="w-4 h-4 text-[#FF5C00] shrink-0" />}
                     </button>
-                    {(usePlayerStore.getState().qualities.length > 0
-                      ? usePlayerStore.getState().qualities
+                    {(qualities.length > 0
+                      ? qualities
                       : [
-                          { height: 1080, index: 0, label: '1080p Full HD' },
-                          { height: 720, index: 1, label: '720p HD' },
-                          { height: 480, index: 2, label: '480p Standard (Data Saver)' },
-                          { height: 360, index: 3, label: '360p Medium' },
-                          { height: 240, index: 4, label: '240p Low Data (Smooth)' },
-                          { height: 180, index: 5, label: '180p Ultra Low (Never Stops)' },
-                        ]
+                        { height: 1080, index: 0, label: '1080p' },
+                        { height: 720, index: 1, label: '720p' },
+                        { height: 480, index: 2, label: '480p' },
+                        { height: 360, index: 3, label: '360p' },
+                        { height: 240, index: 4, label: '240p' },
+                        { height: 180, index: 5, label: '180p' },
+                      ]
                     ).map((q) => (
                       <button
                         key={q.index}
-                        onClick={() => { usePlayerStore.getState().setQuality(q.index); setShowSettings(false); }}
-                        className={`w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between transition-colors ${
-                          usePlayerStore.getState().currentQuality === q.index ? 'text-[#FF5C00] font-bold bg-[#FF5C00]/10' : 'text-[#C8C2B8] hover:bg-white/5 hover:text-white'
-                        }`}
+                        onClick={() => { handleSetQuality(q.index); setShowSettings(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs rounded-xl flex items-center justify-between transition-colors ${currentQuality === q.index ? 'text-[#FF5C00] font-bold bg-[#FF5C00]/10' : 'text-[#C8C2B8] hover:bg-white/5 hover:text-white'
+                          }`}
                       >
                         <div>
                           <div className="font-bold">{q.label || `${q.height}p`}</div>
                           <div className="text-[10px] text-white/40">
-                            {q.height <= 180 ? 'Ultra Low Data • Never Stops' :
-                             q.height <= 240 ? 'Low Data • Instant Playback' :
-                             q.height <= 480 ? 'Standard Definition • Low Data' :
-                             q.height <= 720 ? 'High Definition • Crisp' :
-                             'Full HD • Studio Quality'}
+                            {q.bitrate ? `${Math.round(q.bitrate / 1000)} kbps` : ''}
                           </div>
                         </div>
-                        {usePlayerStore.getState().currentQuality === q.index && <Check className="w-4 h-4 text-[#FF5C00] shrink-0" />}
+                        {currentQuality === q.index && <Check className="w-4 h-4 text-[#FF5C00] shrink-0" />}
                       </button>
                     ))}
                   </div>
@@ -311,7 +360,7 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
 
             {/* Fullscreen Toggle */}
             <button
-              onClick={toggleFullscreen}
+              onClick={handleToggleFullscreen}
               className="text-[#C8C2B8] hover:text-white p-2 rounded-xl hover:bg-white/5 transition-colors"
               aria-label="Toggle Fullscreen"
             >
