@@ -23,6 +23,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   const hlsPlayerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+  const bufferTimer = useRef<ReturnType<typeof setTimeout>>();
   const hasSeeked = useRef(false);
   const [duration, setDuration] = useState(0);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
@@ -175,6 +176,74 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       hasSeeked.current = true;
     }
   }, [duration, initialResumeSeconds, seek]);
+
+  // Real-time synchronization with native <video> element to prevent any stuck buffering state
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let cleanupListeners: (() => void) | null = null;
+
+    const attachListeners = () => {
+      const video = container.querySelector('video');
+      if (!video) return false;
+
+      const clearBuffer = () => {
+        if (bufferTimer.current) {
+          clearTimeout(bufferTimer.current);
+          bufferTimer.current = undefined;
+        }
+        setIsBuffering(false);
+      };
+
+      const handleWaiting = () => {
+        if (bufferTimer.current) clearTimeout(bufferTimer.current);
+        // Only trigger buffering spinner if playback stalls for > 600ms
+        bufferTimer.current = setTimeout(() => {
+          if (!video.paused && !video.ended) {
+            setIsBuffering(true);
+          }
+        }, 600);
+      };
+
+      video.addEventListener('playing', clearBuffer);
+      video.addEventListener('timeupdate', clearBuffer);
+      video.addEventListener('canplay', clearBuffer);
+      video.addEventListener('canplaythrough', clearBuffer);
+      video.addEventListener('pause', clearBuffer);
+      video.addEventListener('waiting', handleWaiting);
+      video.addEventListener('stalled', handleWaiting);
+
+      cleanupListeners = () => {
+        video.removeEventListener('playing', clearBuffer);
+        video.removeEventListener('timeupdate', clearBuffer);
+        video.removeEventListener('canplay', clearBuffer);
+        video.removeEventListener('canplaythrough', clearBuffer);
+        video.removeEventListener('pause', clearBuffer);
+        video.removeEventListener('waiting', handleWaiting);
+        video.removeEventListener('stalled', handleWaiting);
+      };
+      return true;
+    };
+
+    if (!attachListeners()) {
+      const interval = setInterval(() => {
+        if (attachListeners()) {
+          clearInterval(interval);
+        }
+      }, 200);
+      return () => {
+        clearInterval(interval);
+        if (cleanupListeners) cleanupListeners();
+        if (bufferTimer.current) clearTimeout(bufferTimer.current);
+      };
+    }
+
+    return () => {
+      if (cleanupListeners) cleanupListeners();
+      if (bufferTimer.current) clearTimeout(bufferTimer.current);
+    };
+  }, [activeVideoUrl]);
 
   const resetHideTimer = useCallback(() => {
     setShowControls(true);
@@ -446,20 +515,31 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
           }
         }}
         onPlay={() => {
+          if (bufferTimer.current) clearTimeout(bufferTimer.current);
           setIsBuffering(false);
           if (!isPlaying) resume();
         }}
         onProgress={({ playedSeconds }) => {
-          if (playedSeconds > 0 && isBuffering) {
-            setIsBuffering(false);
-          }
+          if (bufferTimer.current) clearTimeout(bufferTimer.current);
+          setIsBuffering(false);
           updateProgress(playedSeconds);
         }}
         onDuration={(d) => setDuration(d)}
         onEnded={handleEnded}
         onPause={saveProgressNow}
-        onBuffer={() => setIsBuffering(true)}
-        onBufferEnd={() => setIsBuffering(false)}
+        onBuffer={() => {
+          if (bufferTimer.current) clearTimeout(bufferTimer.current);
+          bufferTimer.current = setTimeout(() => {
+            const v = containerRef.current?.querySelector('video');
+            if (v && !v.paused && !v.ended) {
+              setIsBuffering(true);
+            }
+          }, 600);
+        }}
+        onBufferEnd={() => {
+          if (bufferTimer.current) clearTimeout(bufferTimer.current);
+          setIsBuffering(false);
+        }}
         onError={(e) => {
           console.warn('ReactPlayer error encountered, attempting reload/fallback:', e);
           // If this is a Firebase Storage URL with a token that failed, fallback to pure public URL without token (Option 3)
@@ -472,7 +552,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
           }
           setIsError(true);
         }}
-        progressInterval={1000}
+        progressInterval={250}
       />
 
       <SubtitleOverlay visible={false} text="" />
@@ -494,22 +574,10 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         </div>
       )}
 
-      {/* Buffering Indicator */}
+      {/* Subtle Buffering Spinner (No text, non-blocking) */}
       {isBuffering && (
-        <div
-          className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-30 pointer-events-auto cursor-pointer"
-          onClick={(e) => {
-            e.stopPropagation();
-            resume();
-          }}
-        >
-          <div className="w-16 h-16 border-4 border-[#FF5C00] border-t-transparent rounded-full animate-spin mb-3"></div>
-          <span className="text-white text-sm font-semibold tracking-wide">
-            Buffering Stream (5.7 GB HD)...
-          </span>
-          <span className="text-white/60 text-xs mt-1">
-            Tap anywhere to force play
-          </span>
+        <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+          <div className="w-14 h-14 border-4 border-white/20 border-t-[#FF5C00] rounded-full animate-spin"></div>
         </div>
       )}
 
