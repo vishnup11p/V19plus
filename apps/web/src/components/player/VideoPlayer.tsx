@@ -276,7 +276,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-screen bg-black cursor-none group overflow-hidden"
+      className={`relative w-full h-full bg-black overflow-hidden ${showControls ? 'cursor-default' : 'cursor-none'}`}
       style={{
         transform: 'translateZ(0)',
         willChange: 'transform',

@@ -32,7 +32,14 @@ export default function WatchPage() {
   });
 
   if (isLoading || !content) {
-    return <Skeleton className="h-screen w-full" />;
+    return (
+      <div className="w-full h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-white/10 border-t-white rounded-full animate-spin" />
+          <span className="text-white/50 text-sm">Loading…</span>
+        </div>
+      </div>
+    );
   }
 
   const allEpisodes = content.seasons?.flatMap((s) => s.episodes) || [];
@@ -59,15 +66,17 @@ export default function WatchPage() {
       : 0;
 
   return (
-    <VideoPlayer
-      content={content}
-      episodeId={episodeId}
-      initialResumeSeconds={resumeSeconds}
-      onNextEpisode={
-        currentIndex >= 0 && currentIndex < allEpisodes.length - 1
-          ? handleNextEpisode
-          : undefined
-      }
-    />
+    <div className="w-full h-screen bg-black overflow-hidden">
+      <VideoPlayer
+        content={content}
+        episodeId={episodeId}
+        initialResumeSeconds={resumeSeconds}
+        onNextEpisode={
+          currentIndex >= 0 && currentIndex < allEpisodes.length - 1
+            ? handleNextEpisode
+            : undefined
+        }
+      />
+    </div>
   );
 }
