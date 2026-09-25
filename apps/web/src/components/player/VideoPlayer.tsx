@@ -316,12 +316,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full bg-black overflow-hidden ${showControls ? 'cursor-default' : 'cursor-none'}`}
-      style={{
-        transform: 'translateZ(0)',
-        willChange: 'transform',
-        backfaceVisibility: 'hidden',
-      }}
+      className={`relative w-full h-full bg-black overflow-hidden select-none ${showControls ? 'cursor-default' : 'cursor-none'}`}
       onMouseMove={resetHideTimer}
       onClick={() => (isPlaying ? pause() : resume())}
     >
@@ -373,6 +368,11 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
               'webkit-playsinline': 'true',
               'x5-playsinline': 'true',
               preload: 'auto',
+              style: {
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+              },
             },
             tracks: activeTracks,
             hlsOptions: {
