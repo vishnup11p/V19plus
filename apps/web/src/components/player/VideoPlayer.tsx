@@ -422,7 +422,16 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
             }
           }
         }}
-        onProgress={({ playedSeconds }) => updateProgress(playedSeconds)}
+        onPlay={() => {
+          setIsBuffering(false);
+          if (!isPlaying) resume();
+        }}
+        onProgress={({ playedSeconds }) => {
+          if (playedSeconds > 0 && isBuffering) {
+            setIsBuffering(false);
+          }
+          updateProgress(playedSeconds);
+        }}
         onDuration={(d) => setDuration(d)}
         onEnded={handleEnded}
         onPause={saveProgressNow}
@@ -445,9 +454,39 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
 
       <SubtitleOverlay visible={false} text="" />
 
+      {/* Center Play Button when paused / waiting for user interaction */}
+      {!isPlaying && !isBuffering && (
+        <div
+          className="absolute inset-0 flex items-center justify-center z-20 pointer-events-auto cursor-pointer bg-black/30"
+          onClick={(e) => {
+            e.stopPropagation();
+            resume();
+          }}
+        >
+          <div className="w-20 h-20 rounded-full bg-[#FF5C00] hover:bg-[#FF7A00] flex items-center justify-center text-white shadow-[0_0_30px_rgba(255,92,0,0.6)] transition-all hover:scale-110 active:scale-95">
+            <svg className="w-9 h-9 fill-white ml-1" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </div>
+        </div>
+      )}
+
+      {/* Buffering Indicator */}
       {isBuffering && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-30 pointer-events-none">
-          <div className="w-16 h-16 border-4 border-n-red border-t-transparent rounded-full animate-spin"></div>
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-30 pointer-events-auto cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            resume();
+          }}
+        >
+          <div className="w-16 h-16 border-4 border-[#FF5C00] border-t-transparent rounded-full animate-spin mb-3"></div>
+          <span className="text-white text-sm font-semibold tracking-wide">
+            Buffering Stream (5.7 GB HD)...
+          </span>
+          <span className="text-white/60 text-xs mt-1">
+            Tap anywhere to force play
+          </span>
         </div>
       )}
 
