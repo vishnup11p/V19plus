@@ -1,7 +1,6 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useContent } from '../../../../hooks/useContent';
 import dynamic from 'next/dynamic';
@@ -32,10 +31,9 @@ interface Episode {
   videoUrl: string;
 }
 
-export default function WatchPage() {
-  const params = useParams() as { slug: string };
+export default function WatchPage({ params }: { params: { slug: string } }) {
   const searchParams = useSearchParams();
-  const slug = params.slug;
+  const slug = params?.slug || '';
   const episodeId = searchParams.get('episode') || undefined;
   const isAuthenticated = useAuthStore((s: { isAuthenticated: boolean }) => s.isAuthenticated);
   const { data: content, isLoading } = useContent(slug || '');

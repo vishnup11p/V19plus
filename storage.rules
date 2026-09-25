@@ -14,23 +14,22 @@ service firebase.storage {
       );
     }
 
-    // Video Storage Rules
-    match /videos/{seriesId}/{allPaths=**} {
-      // Anyone can read/stream videos
+    // Public streaming and media read
+    match /{allPaths=**} {
       allow read: if true;
-      // Only admins can upload MP4 video files
+    }
+
+    // Video Storage Rules
+    match /videos/{allPaths=**} {
+      allow read: if true;
       allow create, update: if isAdmin() && request.resource.contentType.matches('video/mp4');
-      // Only admins can delete video files
       allow delete: if isAdmin();
     }
 
     // Thumbnail Storage Rules
-    match /thumbnails/{seriesId}/{allPaths=**} {
-      // Anyone can read thumbnails
+    match /thumbnails/{allPaths=**} {
       allow read: if true;
-      // Only admins can upload thumbnail images
       allow create, update: if isAdmin() && request.resource.contentType.matches('image/.*');
-      // Only admins can delete thumbnail images
       allow delete: if isAdmin();
     }
 

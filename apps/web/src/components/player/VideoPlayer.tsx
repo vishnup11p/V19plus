@@ -56,6 +56,23 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   // Accept any non-empty URL — http, https, relative, file, capacitor, blob, etc.
   const hasVideo = finalVideoUrl.length > 0;
 
+  const sanitizeStreamUrl = (url: string) => {
+    if (!url) return '';
+    let sanitized = url.trim();
+    if (sanitized.includes('firebasestorage.googleapis.com') && !sanitized.includes('alt=media')) {
+      sanitized += (sanitized.includes('?') ? '&' : '?') + 'alt=media';
+    }
+    return sanitized;
+  };
+
+  const [activeVideoUrl, setActiveVideoUrl] = useState(() => sanitizeStreamUrl(finalVideoUrl));
+  const fallbackAttempted = useRef(false);
+
+  useEffect(() => {
+    setActiveVideoUrl(sanitizeStreamUrl(finalVideoUrl));
+    fallbackAttempted.current = false;
+  }, [finalVideoUrl]);
+
   // Native orientation lock and keep awake hooks
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -316,7 +333,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
 
       <ReactPlayer
         ref={playerRef}
-        url={finalVideoUrl}
+        url={activeVideoUrl}
         playing={isPlaying}
         volume={isMuted ? 0 : volume}
         playbackRate={playbackSpeed}
@@ -325,8 +342,8 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         playsinline
         config={{
           file: {
-            forceHLS: finalVideoUrl.includes('.m3u8'),
-            forceDASH: finalVideoUrl.includes('.mpd'),
+            forceHLS: activeVideoUrl.includes('.m3u8'),
+            forceDASH: activeVideoUrl.includes('.mpd'),
             attributes: {
               ...(activeTracks.length > 0 ? { crossOrigin: 'anonymous' } : {}),
               playsInline: true,
@@ -399,7 +416,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
               const canPlayHLS = videoElem.canPlayType('application/vnd.apple.mpegurl');
               const canPlayMP4 = videoElem.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"');
               const canPlayWebM = videoElem.canPlayType('video/webm; codecs="vp9, opus"');
-              if (!canPlayHLS && !canPlayMP4 && !canPlayWebM && finalVideoUrl.includes('.m3u8')) {
+              if (!canPlayHLS && !canPlayMP4 && !canPlayWebM && activeVideoUrl.includes('.m3u8')) {
                 console.warn('Native HLS not directly supported by HTML5 element; relying on MSE engine');
               }
             }
@@ -413,7 +430,14 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
         onBufferEnd={() => setIsBuffering(false)}
         onError={(e) => {
           console.warn('ReactPlayer error encountered, attempting reload/fallback:', e);
-          // Only flag as error if player has completed initial probe
+          // If this is a Firebase Storage URL with a token that failed, fallback to pure public URL without token (Option 3)
+          if (!fallbackAttempted.current && activeVideoUrl.includes('firebasestorage.googleapis.com') && activeVideoUrl.includes('token=')) {
+            console.log('Firebase token playback failed, retrying with public stream URL (Option 3)...');
+            fallbackAttempted.current = true;
+            const stripped = activeVideoUrl.replace(/([?&])token=[^&]+(&|$)/, '$1').replace(/[?&]$/, '');
+            setActiveVideoUrl(stripped);
+            return;
+          }
           setIsError(true);
         }}
         progressInterval={1000}

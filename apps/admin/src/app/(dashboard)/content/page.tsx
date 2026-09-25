@@ -25,6 +25,19 @@ import {
   ArrowDown
 } from 'lucide-react';
 
+const cleanStreamUrl = (url: string) => {
+  let u = url.trim();
+  if (u.includes('firebasestorage.googleapis.com')) {
+    // Remove &token=... query parameter so it uses the public stream URL (Option 3)
+    u = u.replace(/([?&])token=[^&]+(&|$)/, '$1').replace(/[?&]$/, '');
+    // Ensure alt=media is present for streaming
+    if (!u.includes('alt=media')) {
+      u += (u.includes('?') ? '&' : '?') + 'alt=media';
+    }
+  }
+  return u;
+};
+
 const emptyMovieForm = {
   title: '',
   slug: '',
@@ -635,8 +648,8 @@ export default function AdminContent() {
               <Input
                 label="Direct Video URL (Optional)"
                 value={movieForm.videoUrl}
-                onChange={(v) => setMovieForm({ ...movieForm, videoUrl: v })}
-                placeholder="https://domain.com/hls/master.m3u8 (Optional)"
+                onChange={(v) => setMovieForm({ ...movieForm, videoUrl: cleanStreamUrl(v) })}
+                placeholder="https://firebasestorage.googleapis.com/.../video.mp4?alt=media (or .m3u8)"
               />
             </div>
 
@@ -1044,9 +1057,9 @@ export default function AdminContent() {
                             <input
                               type="text"
                               value={ep.videoUrl || ''}
-                              onChange={(e) => updateEpisode(sIdx, epIdx, 'videoUrl', e.target.value)}
+                              onChange={(e) => updateEpisode(sIdx, epIdx, 'videoUrl', cleanStreamUrl(e.target.value))}
                               className="w-full bg-[#0a0a0a] border border-[#222] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#FF5C00]"
-                              placeholder="https://domain.com/hls/ep1/master.m3u8 (Optional)"
+                              placeholder="https://firebasestorage.googleapis.com/.../ep.mp4?alt=media (or .m3u8)"
                             />
                           </div>
 
