@@ -149,6 +149,25 @@ export default function AdminContent() {
   const [episodeNumber, setEpisodeNumber] = useState<number>(1);
   const [uploadProgressText, setUploadProgressText] = useState<string>('');
   const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
+  const [transcodingId, setTranscodingId] = useState<string | null>(null);
+
+  const handleTranscode = async (videoUrl: string, contentId: string, episodeId?: string) => {
+    if (!videoUrl) {
+      toast.error('Please enter a video URL first');
+      return;
+    }
+    const key = episodeId || contentId;
+    setTranscodingId(key);
+    try {
+      await adminApi.transcodeFromUrl({ videoUrl: cleanMediaUrl(videoUrl), contentId, episodeId });
+      toast.success('🎬 Multi-bitrate transcoding started (180p, 240p, 360p, 480p, 720p, 1080p). It will update automatically when done!');
+      queryClient.invalidateQueries({ queryKey: ['admin-content'] });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to start transcoding');
+    } finally {
+      setTranscodingId(null);
+    }
+  };
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['admin-content'],
@@ -690,6 +709,26 @@ export default function AdminContent() {
                 onChange={(v) => setMovieForm({ ...movieForm, videoUrl: cleanMediaUrl(v) })}
                 placeholder="https://firebasestorage.googleapis.com/.../video.mp4?alt=media (or .m3u8)"
               />
+              {editing && movieForm.videoUrl && (
+                <button
+                  type="button"
+                  onClick={() => handleTranscode(movieForm.videoUrl, editing.id)}
+                  disabled={transcodingId === editing.id}
+                  className="mt-1.5 text-[11px] font-bold text-[#FF5C00] hover:text-[#FF7A00] flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                >
+                  {transcodingId === editing.id ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Transcoding Multi-Bitrate HLS (180p-1080p)...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Transcode to Multi-Bitrate HLS (180p, 240p, 360p, 480p, 720p, 1080p)</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -1100,6 +1139,26 @@ export default function AdminContent() {
                               className="w-full bg-[#0a0a0a] border border-[#222] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#FF5C00]"
                               placeholder="https://firebasestorage.googleapis.com/.../ep.mp4?alt=media (or .m3u8)"
                             />
+                            {editing && ep.videoUrl && (
+                              <button
+                                type="button"
+                                onClick={() => handleTranscode(ep.videoUrl, editing.id, ep.id)}
+                                disabled={transcodingId === ep.id}
+                                className="mt-1.5 text-[11px] font-bold text-[#FF5C00] hover:text-[#FF7A00] flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                              >
+                                {transcodingId === ep.id ? (
+                                  <>
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span>Transcoding Multi-Bitrate HLS (180p-1080p)...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Layers className="w-3 h-3" />
+                                    <span>Transcode to Multi-Bitrate HLS (180p, 240p, 360p, 480p, 720p, 1080p)</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
                           </div>
 
                           <div className="sm:col-span-4">

@@ -114,4 +114,6 @@ export const adminApi = {
     timeout: 600_000,
     onUploadProgress: onProgress,
   }),
+  transcodeFromUrl: (data: { videoUrl: string; contentId: string; episodeId?: string }) =>
+    api.post('/video-process/transcode-url', data),
 };

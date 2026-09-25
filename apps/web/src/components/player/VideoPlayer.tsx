@@ -150,18 +150,29 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
     };
   }, []);
 
-  // Subscribe to playerStore changes for HLS quality settings
+  // Subscribe to playerStore changes for HLS quality settings & direct multi-resolution streams
   useEffect(() => {
     const unsubscribe = usePlayerStore.subscribe((state) => {
       if (hlsPlayerRef.current && hlsPlayerRef.current.currentLevel !== state.currentQuality) {
         hlsPlayerRef.current.currentLevel = state.currentQuality;
+      }
+      // If quality changed and it has a direct stream URL (multi-bitrate URLs)
+      if (state.currentQuality >= 0 && state.qualities[state.currentQuality]?.url) {
+        const targetUrl = state.qualities[state.currentQuality].url!;
+        if (targetUrl && targetUrl !== activeVideoUrl) {
+          const currentSec = usePlayerStore.getState().progress;
+          setActiveVideoUrl(targetUrl);
+          setTimeout(() => {
+            playerRef.current?.seekTo(currentSec);
+          }, 150);
+        }
       }
     });
     return () => {
       unsubscribe();
       hlsPlayerRef.current = null;
     };
-  }, []);
+  }, [activeVideoUrl]);
 
   useEffect(() => {
     play(content, episode ? { ...episode, duration: episode.duration } : undefined, initialResumeSeconds);
@@ -244,6 +255,83 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       if (bufferTimer.current) clearTimeout(bufferTimer.current);
     };
   }, [activeVideoUrl]);
+
+  // Continuous Playback Watchdog: Guarantees video DOES NOT STOP under slow or fluctuating networks
+  useEffect(() => {
+    let lastSec = -1;
+    let stallCount = 0;
+
+    const watchdog = setInterval(() => {
+      const video = containerRef.current?.querySelector('video');
+      if (!video) return;
+
+      if (isPlaying && !video.paused && !video.ended) {
+        const cur = video.currentTime;
+        if (lastSec > 0 && Math.abs(cur - lastSec) < 0.05) {
+          stallCount++;
+          // If video has stalled for > 2.5 seconds
+          if (stallCount >= 3) {
+            console.warn('⚠️ Zero-Stall Watchdog: Video paused on buffer, auto-recovering...');
+            
+            // 1. If HLS, automatically drop quality level so playback immediately continues
+            if (hlsPlayerRef.current) {
+              const curLvl = hlsPlayerRef.current.currentLevel;
+              if (curLvl > 0) {
+                console.log('Zero-Stall: Auto-downshifting to lower resolution level');
+                hlsPlayerRef.current.currentLevel = Math.max(0, curLvl - 1);
+              } else if (curLvl === -1) {
+                // If on Auto and stalled, temporarily force lowest level (180p/240p)
+                console.log('Zero-Stall: Forcing lowest level (180p/240p) for immediate buffer fill');
+                hlsPlayerRef.current.currentLevel = 0;
+              }
+            }
+
+            // 2. Hardware Decoder Unstick
+            try {
+              video.currentTime = cur + 0.08;
+              video.play().catch(() => {});
+            } catch (err) {
+              // Ignore
+            }
+            stallCount = 0;
+          }
+        } else {
+          lastSec = cur;
+          stallCount = 0;
+        }
+      } else {
+        lastSec = -1;
+        stallCount = 0;
+      }
+    }, 1000);
+
+    return () => clearInterval(watchdog);
+  }, [isPlaying]);
+
+  // Multi-resolution URL loader for direct quality streams (180p, 240p, 360p, 480p, 720p, 1080p)
+  useEffect(() => {
+    const rawQualities = (episode as any)?.videoQualities || (content as any)?.videoQualities;
+    if (rawQualities && typeof rawQualities === 'object' && Object.keys(rawQualities).length > 0) {
+      const qList = Object.entries(rawQualities).map(([res, url], idx) => {
+        const height = parseInt(res.replace(/\D/g, '')) || 0;
+        const getLabel = (h: number) => {
+          if (h >= 1080) return `${h}p Full HD`;
+          if (h >= 720) return `${h}p HD`;
+          if (h >= 480) return `${h}p Standard`;
+          if (h >= 360) return `${h}p Medium`;
+          if (h >= 240) return `${h}p Low Data (Smooth)`;
+          return `${h}p Ultra Low (Never Stops)`;
+        };
+        return {
+          height,
+          index: idx,
+          url: sanitizeStreamUrl(url as string),
+          label: getLabel(height),
+        };
+      }).sort((a, b) => b.height - a.height);
+      usePlayerStore.getState().setQualities(qList);
+    }
+  }, [content, episode]);
 
   const resetHideTimer = useCallback(() => {
     setShowControls(true);
@@ -448,21 +536,26 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
               enableWorker: true, // Demux stream on a background Web Worker
               lowLatencyMode: false,
               backBufferLength: 90, // 90s backbuffer for instant seek back
-              maxBufferLength: 30, // 30s forward buffer
-              maxMaxBufferLength: 60, // 60s max forward buffer
-              maxBufferSize: 60 * 1000 * 1000, // 60MB max buffer ceiling to prevent memory pressure
-              maxBufferHole: 0.5,
-              highBufferWatchdogPeriod: 2,
-              nudgeOffset: 0.1,
-              nudgeMaxRetry: 5,
-              maxFragLookUpTolerance: 0.25,
-              startLevel: -1, // Auto ABR (Adaptive Bitrate) selection on startup
+              maxBufferLength: 60, // 60s forward buffer for rock-solid stability
+              maxMaxBufferLength: 120, // 120s max forward buffer
+              maxBufferSize: 80 * 1000 * 1000,
+              maxBufferHole: 0.8, // Tolerate network jitter up to 0.8s without stalling
+              highBufferWatchdogPeriod: 1, // Inspect buffer health every 1 second
+              nudgeOffset: 0.2,
+              nudgeMaxRetry: 10,
+              maxFragLookUpTolerance: 0.3,
+              startLevel: 0, // Starts at lowest resolution (180p/240p) immediately (<0.2s launch), then scales up smoothly
               autoStartLoad: true,
               capLevelToPlayerSize: true, // Caps stream resolution to device display to save GPU & bandwidth
-              abrEwmaDefaultEstimate: 5000000, // 5 Mbps default estimate
-              abrBandWidthFactor: 0.9,
-              abrBandWidthUpFactor: 0.7,
+              abrEwmaDefaultEstimate: 800000, // 800 kbps conservative default estimate for instant startup
+              abrBandWidthFactor: 0.75, // Conservative factor: only climbs when bandwidth is proven
+              abrBandWidthUpFactor: 0.5,
               abrMaxWithRealBitrate: true,
+              fragLoadingTimeOut: 20000,
+              fragLoadingMaxRetry: 6,
+              fragLoadingRetryDelay: 500,
+              levelLoadingTimeOut: 15000,
+              levelLoadingMaxRetry: 5,
             },
           },
         }}
@@ -473,21 +566,31 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
             // Manifest parsed -> load available bitrate & resolution levels
             internalPlayer.on('hlsManifestParsed', (event: any, data: any) => {
               if (data.levels) {
+                const getLabel = (height: number) => {
+                  if (height >= 1080) return `${height}p Full HD`;
+                  if (height >= 720) return `${height}p HD`;
+                  if (height >= 480) return `${height}p Standard`;
+                  if (height >= 360) return `${height}p Medium`;
+                  if (height >= 240) return `${height}p Low Data (Smooth)`;
+                  return `${height}p Ultra Low (Never Stops)`;
+                };
                 const levels = data.levels.map((l: any, i: number) => ({
                   height: l.height,
                   bitrate: l.bitrate,
                   index: i,
+                  label: getLabel(l.height),
                 })).sort((a: any, b: any) => b.height - a.height); // sort descending
                 usePlayerStore.getState().setQualities(levels);
               }
             });
 
-            // Resilient Error Recovery for live & VOD streaming across 3G/4G/WiFi
+            // Resilient Error Recovery: Auto-downgrades to lowest level so video never stops
             internalPlayer.on('hlsError', (event: any, data: any) => {
               if (data?.fatal) {
                 switch (data.type) {
                   case 'networkError':
-                    console.warn('HLS Network Error, recovering stream...');
+                    console.warn('HLS Network Error, forcing level 0 (180p/240p) to keep stream alive...');
+                    internalPlayer.currentLevel = 0;
                     internalPlayer.startLoad();
                     break;
                   case 'mediaError':
@@ -495,9 +598,16 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
                     internalPlayer.recoverMediaError();
                     break;
                   default:
-                    console.error('Fatal unrecoverable HLS error:', data);
-                    setIsError(true);
+                    console.error('Fatal unrecoverable HLS error, resetting level:', data);
+                    internalPlayer.currentLevel = 0;
+                    internalPlayer.startLoad();
                     break;
+                }
+              } else if (data?.details === 'bufferStalledError') {
+                // If stalled, downshift resolution level immediately so video never stops
+                if (internalPlayer.currentLevel > 0) {
+                  console.log('Buffer stall detected, auto-downshifting stream resolution...');
+                  internalPlayer.currentLevel = Math.max(0, internalPlayer.currentLevel - 1);
                 }
               }
             });

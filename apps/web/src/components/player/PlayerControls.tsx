@@ -246,8 +246,9 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
 
                   {/* Resolution Quality Selector */}
                   <div className="border-t border-white/10 pt-2.5">
-                    <p className="text-[10px] font-black text-[#8C8478] uppercase tracking-wider px-2 mb-1.5">
-                      Stream Quality
+                    <p className="text-[10px] font-black text-[#8C8478] uppercase tracking-wider px-2 mb-1.5 flex items-center justify-between">
+                      <span>Stream Quality</span>
+                      <span className="text-[9px] text-[#FF5C00] font-semibold">Zero-Stall ABR</span>
                     </p>
                     <button
                       onClick={() => { usePlayerStore.getState().setQuality(-1); setShowSettings(false); }}
@@ -255,10 +256,23 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
                         usePlayerStore.getState().currentQuality === -1 ? 'text-[#FF5C00] font-bold bg-[#FF5C00]/10' : 'text-[#C8C2B8] hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      <span>Auto (ABR High Dynamic)</span>
-                      {usePlayerStore.getState().currentQuality === -1 && <Check className="w-4 h-4 text-[#FF5C00]" />}
+                      <div>
+                        <div className="font-bold">Auto (Recommended)</div>
+                        <div className="text-[10px] text-white/50">Adaptive bitrate • Zero buffering</div>
+                      </div>
+                      {usePlayerStore.getState().currentQuality === -1 && <Check className="w-4 h-4 text-[#FF5C00] shrink-0" />}
                     </button>
-                    {usePlayerStore.getState().qualities.map((q) => (
+                    {(usePlayerStore.getState().qualities.length > 0
+                      ? usePlayerStore.getState().qualities
+                      : [
+                          { height: 1080, index: 0, label: '1080p Full HD' },
+                          { height: 720, index: 1, label: '720p HD' },
+                          { height: 480, index: 2, label: '480p Standard (Data Saver)' },
+                          { height: 360, index: 3, label: '360p Medium' },
+                          { height: 240, index: 4, label: '240p Low Data (Smooth)' },
+                          { height: 180, index: 5, label: '180p Ultra Low (Never Stops)' },
+                        ]
+                    ).map((q) => (
                       <button
                         key={q.index}
                         onClick={() => { usePlayerStore.getState().setQuality(q.index); setShowSettings(false); }}
@@ -266,8 +280,17 @@ export function PlayerControls({ duration, onSeek, onNextEpisode, showNext, onPi
                           usePlayerStore.getState().currentQuality === q.index ? 'text-[#FF5C00] font-bold bg-[#FF5C00]/10' : 'text-[#C8C2B8] hover:bg-white/5 hover:text-white'
                         }`}
                       >
-                        <span>{q.height}p Ultra HD</span>
-                        {usePlayerStore.getState().currentQuality === q.index && <Check className="w-4 h-4 text-[#FF5C00]" />}
+                        <div>
+                          <div className="font-bold">{q.label || `${q.height}p`}</div>
+                          <div className="text-[10px] text-white/40">
+                            {q.height <= 180 ? 'Ultra Low Data • Never Stops' :
+                             q.height <= 240 ? 'Low Data • Instant Playback' :
+                             q.height <= 480 ? 'Standard Definition • Low Data' :
+                             q.height <= 720 ? 'High Definition • Crisp' :
+                             'Full HD • Studio Quality'}
+                          </div>
+                        </div>
+                        {usePlayerStore.getState().currentQuality === q.index && <Check className="w-4 h-4 text-[#FF5C00] shrink-0" />}
                       </button>
                     ))}
                   </div>

@@ -66,4 +66,22 @@ export class VideoProcessController {
       videoUrl,
     };
   }
+
+  @Post('transcode-url')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async transcodeFromUrl(
+    @Body('videoUrl') videoUrl: string,
+    @Body('contentId') contentId: string,
+    @Body('episodeId') episodeId?: string,
+  ) {
+    if (!videoUrl) throw new BadRequestException('videoUrl is required');
+    if (!contentId) throw new BadRequestException('contentId is required');
+
+    await this.videoProcessService.transcodeHlsFromUrl(videoUrl, contentId, !!episodeId, episodeId);
+    return {
+      message: 'Multi-bitrate transcoding started (180p, 240p, 360p, 480p, 720p, 1080p)',
+      status: 'PROCESSING',
+    };
+  }
 }

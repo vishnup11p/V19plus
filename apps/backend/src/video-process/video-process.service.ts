@@ -72,8 +72,8 @@ export class VideoProcessService {
 
     const masterPlaylistPath = path.join(outputDir, 'master.m3u8');
     const resolutions = [
-      { width: 256, height: 144, name: '144p', bitrate: '250k', maxrate: '270k', bufsize: '400k', bw: 250000 },
-      { width: 426, height: 240, name: '240p', bitrate: '400k', maxrate: '430k', bufsize: '600k', bw: 400000 },
+      { width: 320, height: 180, name: '180p', bitrate: '300k', maxrate: '330k', bufsize: '450k', bw: 300000 },
+      { width: 426, height: 240, name: '240p', bitrate: '450k', maxrate: '480k', bufsize: '650k', bw: 450000 },
       { width: 640, height: 360, name: '360p', bitrate: '800k', maxrate: '856k', bufsize: '1200k', bw: 800000 },
       { width: 854, height: 480, name: '480p', bitrate: '1400k', maxrate: '1498k', bufsize: '2100k', bw: 1400000 },
       { width: 1280, height: 720, name: '720p', bitrate: '2800k', maxrate: '2996k', bufsize: '4200k', bw: 2800000 },
@@ -127,6 +127,30 @@ export class VideoProcessService {
       .catch((err) => this.logger.error(`Failed to transcode HLS video for ${uniqueId}:`, err));
 
     return initialVideoUrl;
+  }
+
+  async transcodeHlsFromUrl(videoUrl: string, contentId: string, isEpisode = false, episodeId?: string): Promise<string> {
+    const uniqueId = episodeId || contentId;
+    const outputDir = path.join(process.cwd(), 'uploads', uniqueId);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const masterPlaylistPath = path.join(outputDir, 'master.m3u8');
+    const resolutions = [
+      { width: 320, height: 180, name: '180p', bitrate: '300k', maxrate: '330k', bufsize: '450k', bw: 300000 },
+      { width: 426, height: 240, name: '240p', bitrate: '450k', maxrate: '480k', bufsize: '650k', bw: 450000 },
+      { width: 640, height: 360, name: '360p', bitrate: '800k', maxrate: '856k', bufsize: '1200k', bw: 800000 },
+      { width: 854, height: 480, name: '480p', bitrate: '1400k', maxrate: '1498k', bufsize: '2100k', bw: 1400000 },
+      { width: 1280, height: 720, name: '720p', bitrate: '2800k', maxrate: '2996k', bufsize: '4200k', bw: 2800000 },
+      { width: 1920, height: 1080, name: '1080p', bitrate: '5000k', maxrate: '5350k', bufsize: '7500k', bw: 5000000 },
+    ];
+
+    // Asynchronously kick off HLS transcoding from remote URL in background
+    this.runTranscode(videoUrl, outputDir, masterPlaylistPath, resolutions, uniqueId, isEpisode, contentId)
+      .catch((err) => this.logger.error(`Failed to transcode HLS video from URL for ${uniqueId}:`, err));
+
+    return 'Transcoding started in background';
   }
 
   private runTranscode(

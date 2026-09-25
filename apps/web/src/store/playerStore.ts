@@ -24,10 +24,10 @@ interface PlayerState {
   playbackSpeed: number;
   resumeSeconds: number;
   
-  // HLS Qualities
-  qualities: { height: number; bitrate: number; index: number }[];
+  // Stream Qualities (HLS & Multi-Bitrate)
+  qualities: { height: number; bitrate?: number; index: number; label?: string; url?: string }[];
   currentQuality: number; // -1 means Auto
-  setQualities: (qualities: { height: number; bitrate: number; index: number }[]) => void;
+  setQualities: (qualities: { height: number; bitrate?: number; index: number; label?: string; url?: string }[]) => void;
   setQuality: (index: number) => void;
 
   play: (content: Content, episode?: Episode, resumeSeconds?: number) => void;
