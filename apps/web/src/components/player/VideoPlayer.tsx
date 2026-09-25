@@ -22,8 +22,8 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
   const playerRef = useRef<ReactPlayer>(null);
   const hlsPlayerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>();
-  const bufferTimer = useRef<ReturnType<typeof setTimeout>>();
+  const hideTimer = useRef<any>(null);
+  const bufferTimer = useRef<any>(null);
   const hasSeeked = useRef(false);
   const [duration, setDuration] = useState(0);
   const [showNextOverlay, setShowNextOverlay] = useState(false);
@@ -202,7 +202,7 @@ export function VideoPlayer({ content, episodeId, onNextEpisode, initialResumeSe
       const clearBuffer = () => {
         if (bufferTimer.current) {
           clearTimeout(bufferTimer.current);
-          bufferTimer.current = undefined;
+          bufferTimer.current = null;
         }
         setIsBuffering(false);
       };
