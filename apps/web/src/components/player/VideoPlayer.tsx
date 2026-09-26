@@ -67,7 +67,10 @@ export function VideoPlayer({
   const allEpisodes = content.seasons?.flatMap((s) => s.episodes) || [];
   const episode = (episodeId ? allEpisodes.find((e) => e.id === episodeId) : null) || allEpisodes[0];
 
-  const rawVideoUrl = (episode?.videoUrl || content.videoUrl || '').trim();
+  const bunnyGuid = (episode as any)?.bunnyVideoGuid || (content as any)?.bunnyVideoGuid;
+  const bunnyHlsUrl = bunnyGuid ? `https://vz-5385b21b-c9e.b-cdn.net/${bunnyGuid}/playlist.m3u8` : '';
+
+  const rawVideoUrl = (bunnyHlsUrl || episode?.hlsUrl || content.hlsUrl || episode?.videoUrl || content.videoUrl || '').trim();
   const { downloads } = useDownloadStore();
   const downloadItem = downloads[episode?.id || episodeId || content.id];
   const finalVideoUrl = (downloadItem && downloadItem.status === 'completed' && downloadItem.localUri)

@@ -15,6 +15,9 @@ export interface Content {
   thumbnailUrl: string;
   backdropUrl: string;
   videoUrl?: string;
+  hlsUrl?: string;
+  bunnyVideoGuid?: string;
+  status?: string;
   trailerUrl?: string;
   isOriginal: boolean;
   isFeatured: boolean;
@@ -32,6 +35,9 @@ export interface Content {
       duration: number;
       thumbnailUrl?: string;
       videoUrl: string;
+      hlsUrl?: string;
+      bunnyVideoGuid?: string;
+      status?: string;
       subtitles?: { id: string; language: string; label: string; url: string }[];
     }[];
   }[];
