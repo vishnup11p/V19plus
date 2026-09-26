@@ -25,6 +25,9 @@
         <domain includeSubdomains="true">googleapis.com</domain>
         <domain includeSubdomains="true">amazonaws.com</domain>
         <domain includeSubdomains="true">cloudfront.net</domain>
+        <domain includeSubdomains="true">b-cdn.net</domain>
+        <domain includeSubdomains="true">mediadelivery.net</domain>
+        <domain includeSubdomains="true">bunnycdn.com</domain>
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />

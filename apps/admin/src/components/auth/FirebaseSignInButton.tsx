@@ -24,7 +24,7 @@ export function FirebaseSignInButton() {
       // Pass the Firebase token to your backend
       await firebaseLogin(idToken);
       
-      toast.success('Admin authenticated successfully! 🔑');
+      toast.success('Admin authenticated successfully!');
       router.push('/');
     } catch (err: any) {
       toast.error(err.message || 'Firebase OAuth initialization failed');
