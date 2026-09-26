@@ -44,6 +44,9 @@ export interface AdminEpisode {
   duration?: number;
   thumbnailUrl?: string;
   videoUrl: string;
+  rawVideoUrl?: string;
+  hlsUrl?: string;
+  transcodeStatus?: 'processing' | 'ready' | 'failed' | string;
   isPublished?: boolean;
 }
 
@@ -70,11 +73,14 @@ export interface AdminContent {
   thumbnailUrl: string;
   backdropUrl: string;
   videoUrl?: string;
+  rawVideoUrl?: string;
+  hlsUrl?: string;
+  transcodeStatus?: 'processing' | 'ready' | 'failed' | string;
   trailerUrl?: string;
   isOriginal: boolean;
   isFeatured: boolean;
   isPublished: boolean;
-  status?: 'ONGOING' | 'COMPLETED';
+  status?: 'ONGOING' | 'COMPLETED' | string;
   language?: string;
   cast?: { id: string; name: string; role: string; photoUrl?: string }[];
   seasons?: AdminSeason[];
@@ -116,4 +122,14 @@ export const adminApi = {
   }),
   transcodeFromUrl: (data: { videoUrl: string; contentId: string; episodeId?: string }) =>
     api.post('/video-process/transcode-url', data),
+  createBunnyVideo: (data: { title: string; contentId: string; episodeId?: string }) =>
+    api.post<{
+      videoGuid: string;
+      libraryId: string | number;
+      signature: string;
+      expirationTime: number;
+      tusEndpoint: string;
+    }>('/video-process/create-bunny-video', data),
+  migrateVideosToBunny: () =>
+    api.post<{ message: string; queuedCount: number; migratedTitles: string[] }>('/video-process/migrate-to-bunny'),
 };

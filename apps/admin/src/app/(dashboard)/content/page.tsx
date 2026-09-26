@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminApi, type AdminContent as ContentItem, type AdminSeason, type AdminEpisode } from '../../../api/admin';
 import toast from 'react-hot-toast';
+import { BunnyVideoUploader } from '../../../components/BunnyVideoUploader';
 import {
   Film,
   Tv,
@@ -510,6 +511,22 @@ export default function AdminContent() {
     return matchesSearch && matchesType;
   });
 
+  const migrateMutation = useMutation({
+    mutationFn: () => adminApi.migrateVideosToBunny(),
+    onSuccess: (res: any) => {
+      const { message, queuedCount } = res.data;
+      if (queuedCount > 0) {
+        toast.success(`🚀 ${message}`);
+        queryClient.invalidateQueries({ queryKey: ['admin-content'] });
+      } else {
+        toast.success('All existing videos are already on Bunny Stream!');
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to trigger video migration');
+    },
+  });
+
   return (
     <div className="space-y-8 animate-fadeIn">
       {/* Header and Add Action Buttons */}
@@ -520,6 +537,27 @@ export default function AdminContent() {
         </div>
         {!showMovieForm && !showSeriesForm && (
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => {
+                if (confirm('Start server-to-server migration of all existing videos to Bunny Stream? Bunny CDN will automatically download and transcode them.')) {
+                  migrateMutation.mutate();
+                }
+              }}
+              disabled={migrateMutation.isPending}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-orange-600/20 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {migrateMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Migrating...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  <span>Migrate Videos to Bunny</span>
+                </>
+              )}
+            </button>
             <button
               onClick={() => {
                 resetForms();
@@ -679,56 +717,25 @@ export default function AdminContent() {
             />
 
             <div className="md:col-span-2">
-              <label className="block text-xs font-semibold uppercase text-gray-500 mb-1.5">
-                Video File Upload (Upload video and transcode automatically)
-              </label>
-              <div className="relative">
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleFileChange}
-                  id="form-file-upload"
-                  className="hidden"
-                />
-                <label
-                  htmlFor="form-file-upload"
-                  className="flex items-center gap-2 px-4 py-3 bg-[#0f0f0f] border border-[#222] hover:border-[#333] rounded-xl text-sm text-gray-400 hover:text-white cursor-pointer transition-colors"
-                >
-                  <FileVideo className="w-5 h-5 shrink-0 text-red-500" />
-                  <span className="truncate">
-                    {selectedFile ? selectedFile.name : 'Choose raw video file...'}
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            <div className="md:col-span-2">
-              <Input
-                label="Direct Video URL (Optional)"
-                value={movieForm.videoUrl}
-                onChange={(v) => setMovieForm({ ...movieForm, videoUrl: cleanMediaUrl(v) })}
-                placeholder="https://firebasestorage.googleapis.com/.../video.mp4?alt=media (or .m3u8)"
+              <BunnyVideoUploader
+                contentId={editing ? editing.id : 'temp_new'}
+                onUploadComplete={async (bunnyVideoGuid, playbackUrl) => {
+                  setMovieForm((prev) => ({ ...prev, videoUrl: playbackUrl }));
+                  if (editing) {
+                    await adminApi.updateContent(editing.id, {
+                      videoUrl: playbackUrl,
+                      hlsUrl: playbackUrl,
+                      bunnyVideoGuid,
+                      transcodeStatus: 'processing',
+                    } as any);
+                    queryClient.invalidateQueries({ queryKey: ['admin-content'] });
+                    toast.success('🎉 Direct Bunny Stream upload complete! Transcoding active on Bunny CDN.');
+                  }
+                }}
+                currentVideoUrl={movieForm.videoUrl}
+                status={editing?.transcodeStatus || (movieForm.videoUrl ? 'ready' : undefined)}
+                label="Direct Bunny Stream TUS Resumable Upload (Up to 100GB)"
               />
-              {editing && movieForm.videoUrl && (
-                <button
-                  type="button"
-                  onClick={() => handleTranscode(movieForm.videoUrl, editing.id)}
-                  disabled={transcodingId === editing.id}
-                  className="mt-1.5 text-[11px] font-bold text-[#FF5C00] hover:text-[#FF7A00] flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                >
-                  {transcodingId === editing.id ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Transcoding Multi-Bitrate HLS (180p-1080p)...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>Transcode to Multi-Bitrate HLS (180p, 240p, 360p, 480p, 720p, 1080p)</span>
-                    </>
-                  )}
-                </button>
-              )}
             </div>
 
             <div className="md:col-span-2">
@@ -1128,37 +1135,34 @@ export default function AdminContent() {
                             />
                           </div>
 
-                          <div className="sm:col-span-4">
-                            <label className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
-                              Video Streaming URL (Optional - HLS / MP4)
-                            </label>
-                            <input
-                              type="text"
-                              value={ep.videoUrl || ''}
-                              onChange={(e) => updateEpisode(sIdx, epIdx, 'videoUrl', cleanMediaUrl(e.target.value))}
-                              className="w-full bg-[#0a0a0a] border border-[#222] rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-[#FF5C00]"
-                              placeholder="https://firebasestorage.googleapis.com/.../ep.mp4?alt=media (or .m3u8)"
+                          <div className="sm:col-span-4 pt-2">
+                            <BunnyVideoUploader
+                              contentId={editing ? editing.id : 'temp_series'}
+                              episodeId={ep.id}
+                              onUploadComplete={async (bunnyVideoGuid, playbackUrl) => {
+                                updateEpisode(sIdx, epIdx, 'videoUrl', playbackUrl);
+                                updateEpisode(sIdx, epIdx, 'hlsUrl', playbackUrl);
+                                updateEpisode(sIdx, epIdx, 'bunnyVideoGuid', bunnyVideoGuid);
+                                updateEpisode(sIdx, epIdx, 'transcodeStatus', 'processing');
+
+                                if (editing) {
+                                  const updatedSeasons = seriesForm.seasons.map((s, idx1) => ({
+                                    ...s,
+                                    episodes: s.episodes.map((e, idx2) =>
+                                      idx1 === sIdx && idx2 === epIdx
+                                        ? { ...e, videoUrl: playbackUrl, hlsUrl: playbackUrl, bunnyVideoGuid, transcodeStatus: 'processing' }
+                                        : e
+                                    ),
+                                  }));
+                                  await adminApi.updateContent(editing.id, { seasons: updatedSeasons } as any);
+                                  queryClient.invalidateQueries({ queryKey: ['admin-content'] });
+                                  toast.success(`🎉 Episode ${ep.number} direct Bunny Stream upload complete!`);
+                                }
+                              }}
+                              currentVideoUrl={ep.videoUrl}
+                              status={ep.transcodeStatus || (ep.videoUrl ? 'ready' : undefined)}
+                              label={`Episode ${ep.number} Bunny Stream TUS Video Upload`}
                             />
-                            {editing && ep.videoUrl && (
-                              <button
-                                type="button"
-                                onClick={() => handleTranscode(ep.videoUrl, editing.id, ep.id)}
-                                disabled={transcodingId === ep.id}
-                                className="mt-1.5 text-[11px] font-bold text-[#FF5C00] hover:text-[#FF7A00] flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                              >
-                                {transcodingId === ep.id ? (
-                                  <>
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                    <span>Transcoding Multi-Bitrate HLS (180p-1080p)...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Layers className="w-3 h-3" />
-                                    <span>Transcode to Multi-Bitrate HLS (180p, 240p, 360p, 480p, 720p, 1080p)</span>
-                                  </>
-                                )}
-                              </button>
-                            )}
                           </div>
 
                           <div className="sm:col-span-4">
@@ -1408,61 +1412,26 @@ export default function AdminContent() {
                     </div>
                   </div>
 
-                  {/* Expandable Video Upload Field for Movies */}
+                  {/* Expandable Video Upload Field for Movies / Items */}
                   {isUploading && (
-                    <div className="pt-2 border-t border-[#2d2d2d] flex flex-col gap-3">
-                      {uploadProgressText && (
-                        <div className="bg-red-500/10 border border-red-500/30 text-red-400 font-mono text-xs px-3 py-2 rounded-xl flex items-center gap-2">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-red-500 shrink-0" />
-                          <span>{uploadProgressText}</span>
-                        </div>
-                      )}
-                      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                        <div className="flex-1 relative">
-                          <input
-                            type="file"
-                            accept="video/mp4"
-                            onChange={handleFileChange}
-                            id={`file-upload-${item.id}`}
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor={`file-upload-${item.id}`}
-                            className="flex items-center gap-2 px-4 py-2.5 bg-[#0f0f0f] border border-[#2d2d2d] hover:border-[#333] rounded-xl text-xs text-gray-400 hover:text-white cursor-pointer transition-colors"
-                          >
-                            <FileVideo className="w-4 h-4 shrink-0 text-red-500" />
-                            <span className="truncate">
-                              {selectedFile ? selectedFile.name : 'Choose raw MP4 video file...'}
-                            </span>
-                          </label>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleUploadSubmit(item.id)}
-                            disabled={!selectedFile || uploadMutation.isPending}
-                            className="flex-1 sm:flex-none px-4 py-2.5 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-                          >
-                            {uploadMutation.isPending ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                Uploading...
-                              </>
-                            ) : (
-                              'Start Upload'
-                            )}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setUploadingId(null);
-                              setSelectedFile(null);
-                              setUploadProgressText('');
-                            }}
-                            className="px-3 py-2.5 bg-[#222] hover:bg-[#2a2a2a] text-gray-300 text-xs font-semibold rounded-xl transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
+                    <div className="pt-2 border-t border-[#2d2d2d]">
+                      <BunnyVideoUploader
+                        contentId={item.id}
+                        onUploadComplete={async (bunnyVideoGuid, playbackUrl) => {
+                          await adminApi.updateContent(item.id, {
+                            videoUrl: playbackUrl,
+                            hlsUrl: playbackUrl,
+                            bunnyVideoGuid,
+                            transcodeStatus: 'processing',
+                          } as any);
+                          queryClient.invalidateQueries({ queryKey: ['admin-content'] });
+                          setUploadingId(null);
+                          toast.success('🎉 Direct TUS Upload to Bunny Stream complete!');
+                        }}
+                        currentVideoUrl={item.videoUrl}
+                        status={item.transcodeStatus || (item.videoUrl ? 'ready' : undefined)}
+                        label={`Bunny Stream Video Upload for "${item.title}"`}
+                      />
                     </div>
                   )}
                 </div>

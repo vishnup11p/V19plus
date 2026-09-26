@@ -12,6 +12,31 @@ import * as fs from 'fs';
 export class VideoProcessController {
   constructor(private readonly videoProcessService: VideoProcessService) {}
 
+  @Post('create-bunny-video')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async createBunnyVideo(
+    @Body('title') title: string,
+    @Body('contentId') contentId: string,
+    @Body('episodeId') episodeId?: string,
+  ) {
+    if (!contentId) throw new BadRequestException('contentId is required');
+
+    return this.videoProcessService.createBunnyVideo(title, contentId, episodeId);
+  }
+
+  @Post('bunny-webhook')
+  async bunnyWebhook(@Body() body: any) {
+    return this.videoProcessService.handleBunnyWebhook(body);
+  }
+
+  @Post('migrate-to-bunny')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async migrateToBunny() {
+    return this.videoProcessService.migrateExistingVideosToBunny();
+  }
+
   @Post('upload')
   @UseGuards(AuthGuard, RolesGuard)
   @Roles('ADMIN')
@@ -48,12 +73,10 @@ export class VideoProcessController {
       throw new BadRequestException('Video file is required');
     }
     if (!contentId) {
-      // Clean up uploaded temp file
       fs.unlinkSync(file.path);
       throw new BadRequestException('Content ID is required');
     }
 
-    // Trigger transcoding in background
     const videoUrl = await this.videoProcessService.transcodeHls(
       file.path,
       contentId,

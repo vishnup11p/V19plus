@@ -53,6 +53,10 @@ export interface Content {
   thumbnailUrl: string;
   backdropUrl: string;
   videoUrl?: string | null;
+  rawVideoUrl?: string | null;
+  hlsUrl?: string | null;
+  bunnyVideoGuid?: string | null;
+  status?: 'processing' | 'ready' | 'failed' | string;
   trailerUrl?: string | null;
   isOriginal: boolean;
   isFeatured: boolean;
@@ -89,6 +93,10 @@ export interface Episode {
   duration: number;
   thumbnailUrl?: string | null;
   videoUrl: string;
+  rawVideoUrl?: string | null;
+  hlsUrl?: string | null;
+  bunnyVideoGuid?: string | null;
+  status?: 'processing' | 'ready' | 'failed' | string;
   createdAt: Date | string;
 }
 

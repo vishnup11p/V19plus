@@ -572,6 +572,12 @@ export function VideoPlayer({
                 S{content.seasons?.find((s) => s.episodes.some((e) => e.id === episodeId))?.number || 1}:E{episode.number} — {episode.title}
               </span>
             )}
+            {((content as any)?.status === 'processing' || (episode as any)?.status === 'processing' || (content as any)?.transcodeStatus === 'processing' || (episode as any)?.transcodeStatus === 'processing') && (
+              <span className="text-amber-400 text-xs font-bold flex items-center gap-1.5 mt-0.5 animate-pulse bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-md max-w-max">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                Adaptive HLS Transcoding in progress (240p - 1080p)...
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -587,7 +593,7 @@ export function VideoPlayer({
         playsinline
         config={{
           file: {
-            forceHLS: activeVideoUrl.includes('.m3u8'),
+            forceHLS: activeVideoUrl.includes('.m3u8') || activeVideoUrl.includes('bunny') || activeVideoUrl.includes('mediadelivery.net') || activeVideoUrl.includes('b-cdn.net'),
             forceDASH: activeVideoUrl.includes('.mpd'),
             attributes: {
               ...(activeTracks.length > 0 && !activeVideoUrl.includes('firebasestorage.googleapis.com') ? { crossOrigin: 'anonymous' } : {}),
