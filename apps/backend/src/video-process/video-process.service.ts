@@ -31,7 +31,7 @@ export class VideoProcessService {
   }
 
   async createBunnyVideo(title: string, contentId: string, episodeId?: string) {
-    const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID || '123456';
+    const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID || '762875';
     const apiKey = process.env.BUNNY_STREAM_API_KEY || 'f2fe276f-479e-4998-ba198ffa33b3-85d3-42d7';
 
     this.logger.log(`Creating Bunny Stream video for ${contentId} (episode: ${episodeId || 'none'})`);
@@ -101,7 +101,7 @@ export class VideoProcessService {
   }
 
   async migrateExistingVideosToBunny() {
-    const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID || '123456';
+    const libraryId = process.env.BUNNY_STREAM_LIBRARY_ID || '762875';
     const apiKey = process.env.BUNNY_STREAM_API_KEY || 'f2fe276f-479e-4998-ba198ffa33b3-85d3-42d7';
 
     this.logger.log('🚀 Starting automated server-to-server migration of existing videos to Bunny Stream...');
@@ -204,7 +204,7 @@ export class VideoProcessService {
   async handleBunnyWebhook(body: any) {
     this.logger.log(`Received Bunny Stream Webhook notification:`, body);
     const videoGuid = body.VideoGuid || body.videoGuid || body.guid;
-    const libraryId = body.VideoLibraryId || body.videoLibraryId || process.env.BUNNY_STREAM_LIBRARY_ID || '123456';
+    const libraryId = body.VideoLibraryId || body.videoLibraryId || process.env.BUNNY_STREAM_LIBRARY_ID || '762875';
     const status = body.Status !== undefined ? Number(body.Status) : undefined;
 
     if (!videoGuid) return { message: 'No VideoGuid in webhook' };
