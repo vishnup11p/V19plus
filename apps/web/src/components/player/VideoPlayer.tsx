@@ -67,17 +67,31 @@ export function VideoPlayer({
   const allEpisodes = content.seasons?.flatMap((s) => s.episodes) || [];
   const episode = (episodeId ? allEpisodes.find((e) => e.id === episodeId) : null) || allEpisodes[0];
 
+  const itemStatus = (episode as any)?.status || (episode as any)?.transcodeStatus || content.status || (content as any)?.transcodeStatus;
   const bunnyGuid = (episode as any)?.bunnyVideoGuid || (content as any)?.bunnyVideoGuid;
   const bunnyHlsUrl = bunnyGuid ? `https://vz-5385b21b-c9e.b-cdn.net/${bunnyGuid}/playlist.m3u8` : '';
 
-  const rawVideoUrl = (bunnyHlsUrl || episode?.hlsUrl || content.hlsUrl || episode?.videoUrl || content.videoUrl || '').trim();
+  const storedUrl = (episode?.videoUrl || content.videoUrl || '').trim();
+  const storedHls = (episode?.hlsUrl || content.hlsUrl || '').trim();
+
+  let resolvedUrl = '';
+  if (storedHls && (storedHls.includes('b-cdn.net') || storedHls.includes('bunny') || storedHls.includes('mediadelivery.net'))) {
+    resolvedUrl = storedHls;
+  } else if (storedUrl && (storedUrl.includes('b-cdn.net') || storedUrl.includes('bunny') || storedUrl.includes('mediadelivery.net'))) {
+    resolvedUrl = storedUrl;
+  } else if (itemStatus === 'ready' && bunnyHlsUrl) {
+    resolvedUrl = bunnyHlsUrl;
+  } else {
+    resolvedUrl = storedUrl || bunnyHlsUrl || storedHls;
+  }
+
   const { downloads } = useDownloadStore();
   const downloadItem = downloads[episode?.id || episodeId || content.id];
   const finalVideoUrl = (downloadItem && downloadItem.status === 'completed' && downloadItem.localUri)
     ? (typeof (Capacitor as any)?.convertFileSrc === 'function' && Capacitor.isNativePlatform()
         ? (Capacitor as any).convertFileSrc(downloadItem.localUri)
         : downloadItem.localUri)
-    : rawVideoUrl;
+    : resolvedUrl;
 
   const totalDuration = episode?.duration ? episode.duration * 60 : (content.duration || 0) * 60;
   const nextEpisode = allEpisodes.find((e, i, arr) => {
@@ -738,7 +752,17 @@ export function VideoPlayer({
         }}
         onError={(e) => {
           logEvent('error', { origin: 'react_player_onError', error: e });
-          // If this is a Firebase Storage URL with a token that failed, fallback to pure public URL without token
+
+          // Fallback 1: If Bunny HLS URL failed (404 while encoding), fallback to stored raw video URL
+          const rawFallback = (episode?.videoUrl || content.videoUrl || '').trim();
+          if (!fallbackAttempted.current && activeVideoUrl.includes('b-cdn.net') && rawFallback && !rawFallback.includes('b-cdn.net')) {
+            console.log('Bunny HLS stream not ready yet, falling back to raw video URL:', rawFallback);
+            fallbackAttempted.current = true;
+            setActiveVideoUrl(sanitizeStreamUrl(rawFallback));
+            return;
+          }
+
+          // Fallback 2: If Firebase Storage URL with a token failed, fallback to public URL without token
           if (!fallbackAttempted.current && activeVideoUrl.includes('firebasestorage.googleapis.com') && activeVideoUrl.includes('token=')) {
             console.log('Firebase token playback failed, retrying with public stream URL...');
             fallbackAttempted.current = true;
